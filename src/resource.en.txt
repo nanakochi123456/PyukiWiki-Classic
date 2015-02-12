@@ -1,0 +1,62 @@
+#
+# Resource file(English)
+#
+deleted=deleted.
+notfound=Not Found.
+invalidname=Invalid Name.
+editthispage=Editting This Page.
+admineditthispage=Editting This Page.(Need Password)
+cantchange=Can not modify this page.
+newpagename=Create New Page:
+touch=Touch Time Stamp.
+savebutton=Save
+createbutton=Create
+frozenbutton=Freeze
+notfrozenbutton=Melt
+frozenpassword=Password
+passworderror=Invalid Password
+changepasswordbutton=Password change
+oldpassword=Old Password
+newpassword=New Password
+newpassword2=New Password(Reinput)
+passwordmismatcherror=Password Mismatch.
+passwordchanged=Password changed.
+changepassword=Password change
+success=Complete.
+passwordneeded=You need password.
+saved=Saved.
+continuereading=Continue Reading:
+searchthispage=Search This Page
+recentchangesbutton=History
+indexbutton=View
+createbutton=New
+editbutton=Edit
+admineditbutton=Freeze
+yourname=Your Name:
+commentbutton=Comment
+difftitle=Difference
+diffnotice=<ul><li>Leatest add line display like <b class="added">this</b>.</li><li>Leatest delete line display like <s class="deleted">Tthis</s>.</li></ul><hr />
+diffbutton=Diff
+rssbutton=RSS
+previewtitle=Preview
+previewnotice=<p>If you ok then save.</p><hr />
+previewempty=<p>(Page is empty then <b>delete</b> this page.)</p>
+previewbutton=Preview
+bulkreadnotice=<p>Please Edit this page</p>
+anydbmfileerror=<p>AnyDBM_File can not use. change \$modifier_dbtype to 'YukiWikiDB'</p>
+table_of_contents=Index
+
+#
+
+top=Top
+reload=Reload
+help=Help
+searchpage=Search Word
+searchbutton=Search
+searchand=AND
+searchor=OR
+
+vote_plugin_choice=Choice
+vote_plugin_votes=Vote
+
+attachbutton=Attach
