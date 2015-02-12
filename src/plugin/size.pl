@@ -1,11 +1,13 @@
 ###############################################
-# sizeƒvƒ‰ƒOƒCƒ“
-# size.inc.pl
+# size plugin for YukiWiki & PyukiWiki
+# size.pl
 # Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # 1TAB=4Spaces
+###############################################
+use strict;
+package size;
 
-sub plugin_size_inline {
+sub plugin_inline {
 	my ($size, $body) = split(/,/, shift);
 	if ($size eq '' or $body eq '') {
 		return "";

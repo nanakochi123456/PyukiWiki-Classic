@@ -1,8 +1,9 @@
 ############################################################
-# recent ƒvƒ‰ƒOƒCƒ“
+# recent ¥×¥é¥°¥¤¥ó
 # recent.inc.pl
 # Copyright(c) 2004 Nekyo.
-# v 0.0.1 Action‹@”\’Ç‰Á
+# v 0.0.2 ¥À¥¤¥Ê¥ß¥Ã¥¯À¸À®¤«¤é RecentChanges ¤ò½ü³°¤·¤¿¡£
+# v 0.0.1 Action¤Ë¤è¤ê¥À¥¤¥Ê¥ß¥Ã¥¯À¸À®µ¡Ç½ÄÉ²Ã
 # v 0.0.0
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 #
@@ -34,13 +35,15 @@ sub plugin_recent_action {
 	my %rclist;
 	my $atime;
 	foreach my $page (sort keys %::database) {
-		$atime = (stat($::dataname . "/" . &dbmname($page) . ".txt"))[9];	# stat‚Åƒtƒ@ƒCƒ‹XV“úæ“¾
-		$update = "- @{[&get_date($atime)]} @{[&armor_name($page)]} @{[&get_subjectline($page)]}";
-		$rclist{$atime} = $update;
+		next if ($page eq $::RecentChanges);	# RecentChanges ¤ò½ü³°
+		$atime = (stat($::dataname . "/" . &dbmname($page) . ".txt"))[9];	# stat¤ÇºÇ½ª¹¹¿·ÆüÉÕ¤ò¼èÆÀ
+		$rclist{$page} = $atime;
 	}
 	my @updates;
-	foreach my $time (sort { $b <=> $a } keys %rclist) {
-		push(@updates, $rclist{$time});
+	foreach my $page (sort { $rclist{$b} <=> $rclist{$a} } keys %rclist) {
+		$atime = $rclist{$page};
+		$update = "- @{[&get_date($atime)]} @{[&armor_name($page)]} @{[&get_subjectline($page)]}";
+		push(@updates, $update);
 	}
 	splice(@updates, $::maxrecent + 1);
 	$::database{$::RecentChanges} = join("\n", @updates);

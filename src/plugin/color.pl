@@ -1,13 +1,16 @@
 ###############################################
-# colorƒvƒ‰ƒOƒCƒ“
-# color.inc.pl
+# color plugin for YukiWiki & Pyukiwiki
+# color.pl
 # Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # 1TAB=4Spaces
+###############################################
+use strict;
+package color;
 
-sub plugin_color_inline {
+sub plugin_inline {
 	my @args = split(/,/, shift);
 	my $bgcolor = '';
+	my ($color, $bgcolor, $body);
 
 	if (@args == 3) {
 		$color = $args[0];
@@ -21,10 +24,10 @@ sub plugin_color_inline {
 		$color = $args[0];
 		$body = $args[1];
 	} else {
-		return FALSE;
+		return '';
 	}
 	if ($color eq '' or $body eq '') {
-		return FALSE;
+		return '';
 	}
 	if ($bgcolor ne '') {
 		$color .= ';background-color:'.$bgcolor;

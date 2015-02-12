@@ -1,12 +1,14 @@
 ############################################################
-# comment プラグイン
+# comment plugin
 # comment.inc.pl
 # Copyright(c) 2004 Nekyo.
-# v 0.0.1 - 複数コメント対応
+# v 0.0.1 - ProtoType
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # Based on comment.inc.php by Mr.arino.
 # 1TAB=4Spaces
 #
+use strict;
+
 my $comment_format = "\x08MSG\x08 -- \x08NAME\x08 \x08NOW\x08";
 
 sub plugin_comment_action {
@@ -51,14 +53,14 @@ sub plugin_comment_action {
 my $comment_no = 0;
 
 sub plugin_comment_convert {
-	@argv = split(/,/, shift);
+	my @argv = split(/,/, shift);
 
 	my $above = 1;
 	my $nodate = '';
 	my $nametags = $::resource{yourname} . '<input type="text" name="myname" value="" size="10">';
 
 	foreach (@argv) {
-		comp;
+		chomp;
 		if (/below/) {
 			$above = 0;
 		} elsif (/nodate/) {

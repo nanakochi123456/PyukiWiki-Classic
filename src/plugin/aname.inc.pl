@@ -1,5 +1,5 @@
 ###############################################
-# anameプラグイン
+# aname plugin
 # aname.inc.pl
 # Copyright(c) 2004 Nekyo.
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
@@ -13,7 +13,7 @@ sub plugin_aname_inline
 
 sub plugin_aname_convert
 {
-	return false if (@_ < 1);	# 引数がない。
+	return '' if (@_ < 1);	# no param
 	my @args = split(/,/, shift);
 	my $id = shift(@args);
 	return false if (!($id =~ /^[A-Za-z][\w\-]*$/));

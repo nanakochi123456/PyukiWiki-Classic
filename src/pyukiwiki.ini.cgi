@@ -39,6 +39,7 @@ $::usefacemark = 1;   # 1:Enable :) -> Face Mark./0:Not
 $::use_popup = 0;     # 1:PopUp New Window/0:Not at Link
 $::last_modified = 2; # 0:Non/1:Upper/2:Lower
 $::lastmod_prompt = 'Last-modified:';
+$::enable_convtime = 1; # 1:Disp Convert Time/0:None;
 
 # Formats
 $::date_format = 'Y-m-d'; # replace &date; to this format.

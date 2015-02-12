@@ -33,7 +33,7 @@ use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
-$::version = '0.0.9';
+$::version = '0.1.0';
 ##############################
 #
 # You MUST modify following '$modifier_...' variables.
@@ -94,7 +94,7 @@ my $AdminSpecialPage = 'Admin Special Page'; # must include spaces.
 
 ##############################
 my $wiki_name = '\b([A-Z][a-z]+([A-Z][a-z]+)+)\b';
-my $bracket_name = '\[\[(\S+?)\]\]';
+my $bracket_name = '\[\[([^\]]+?)\]\]';
 my $embedded_name = '(\#\S+?)';
 my $interwiki_definition = '\[\[(\S+?)\ (\S+?)\]\]';
 my $interwiki_name = '([^:]+):([^:].*)';
@@ -119,7 +119,7 @@ my %fixedplugin = (
 	'list' => 1,
 );
 my %infobase;
-my %diffbase;
+%::diffbase;
 my %interwiki;
 ##############################
 my %page_command = (
@@ -139,6 +139,7 @@ my $plugin_dir = "./plugin/";
 $::counter_dir = "$::modifier_dir_data/counter/";
 $::counter_ext = '.count';
 my $lastmod;	# v0.0.9
+my %_plugined;	# 1:Pyuki/2:Yuki/0:None
 
 ##############################
 &main;
@@ -156,10 +157,15 @@ sub main {
 	} else {
 		my $exec = 1;
 		if ($::form{cmd}) {
-			my $path = $plugin_dir . $::form{cmd} . '.inc.pl';
-			if (-e $path) {
+			if (!$_plugined{$::form{cmd}}) {
+				my $path = $plugin_dir . $::form{cmd} . '.inc.pl';
+				if (-e $path) {
+					require $path;
+					$_plugined{$::form{cmd}} = 1;
+				}
+			}
+			if ($_plugined{$::form{cmd}} == 1) {
 				my $action = "\&plugin_" . $::form{cmd} . "_action";
-				require $path;
 				my %ret = eval $action;
 				if (($ret{msg} ne '') && ($ret{body} ne '')) {
 					$exec = 0;
@@ -288,7 +294,7 @@ sub do_write {
 		&open_diff;
 		my @msg1 = split(/\n/, $::database{$::form{mypage}});
 		my @msg2 = split(/\n/, $::form{mymsg});
-		$diffbase{$::form{mypage}} = &difftext(\@msg1, \@msg2);
+		$::diffbase{$::form{mypage}} = &difftext(\@msg1, \@msg2);
 		&close_diff;
 	}
 
@@ -323,11 +329,16 @@ sub print_error {
 	exit(0);
 }
 
+my $_conv_start;
+
 sub print_header {
 	my ($page) = @_;
 	my $bodyclass = "normal";
 	my $editable = 0;
 	my $admineditable = 0;
+
+	$_conv_start = (times)[0] if ($::enable_convtime != 0);
+
 	if (&is_frozen($page) and $::form{cmd} =~ /^(read|write)$/) {
 		$editable = 0;
 		$admineditable = 1;
@@ -368,7 +379,7 @@ Content-type: text/html; charset=$::charset
 <h1 class="title"><a
     title="$::resource{searchthispage}"
     href="$::script?cmd=search&amp;mymsg=$cookedpage">@{[&htmlspecialchars($page)]}</a></h1>
-<a href="$::script?$page">$::script?$page</a>
+<a href="$::script?$page">$::script?$cookedpage</a>
 </div>
 <div id="navigator">
 
@@ -428,6 +439,7 @@ EOD
 		}
 		print("</div>\n");
 	}
+
 	print <<"EOD";
 <hr class="full_hr" />
 <div id="toolbar"><a href="$::script?cmd=rss10"><img src="$::modifierlink_data/image/rss.png" border="0" /></a></div>
@@ -441,6 +453,11 @@ Modified by <a href="$::modifierlink">$::modifier</a><br /><br />
 Copyright&copy; 2004 by <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>.<br />
 Based on "YukiWiki" 2.1.0 by <a href="http://www.hyuki.com/yukiwiki/">yuki</a>
 and <a href="http://pukiwiki.org">"PukiWiki"</a><br />
+EOD
+	if ($::enable_convtime != 0) {
+		printf('<br />HTML convert time to %.3f sec.', (times)[0] - $_conv_start);
+	}
+	print <<"EOD";
 </div>
 </body>
 </html>
@@ -681,8 +698,8 @@ sub make_link {
 		}
 	} elsif ($chunk =~ /^(mailto):(.*)/) {
 		return qq(<a href="$chunk">$2</a>);
-	} elsif ($chunk =~ /^$interwiki_definition$/) {
-		return qq(<span class="InterWiki">$chunk</span>);
+#	} elsif ($chunk =~ /^$interwiki_definition$/) {
+#		return qq(<span class="InterWiki">$chunk</span>);
 	} elsif ($chunk =~ /$embed_inline/) {
 		return &embedded_inline($1)
 	} else {
@@ -695,12 +712,10 @@ sub make_link {
 			$cookedchunk = &encode($alias[1]);
 			$escapedchunk = &htmlspecialchars($alias[0]);
 			$chunk = $alias[1];
-		}
-		if ($chunk =~ /:(http|https|ftp):/) {
-			my @alias = split(/:/, $chunk);		# [[alias>URL]]
-			$cookedchunk = &encode($alias[1]);
-			$escapedchunk = &htmlspecialchars($alias[0]);
-			$chunk = $alias[1];
+		} elsif ($chunk =~ /(.+?):(.+)/ && !$interwiki{$1}) {
+			$cookedchunk = &encode($2);
+			$escapedchunk = &htmlspecialchars($1);
+			$chunk = $2;
 		}
 		if ($chunk =~ /^(http|https|ftp):/) {
 			if ($use_autoimg and $chunk =~ /\.(gif|png|jpeg|jpg)$/) {
@@ -878,21 +893,21 @@ sub close_db {
 
 sub open_diff {
 	if ($modifier_dbtype eq 'dbmopen') {
-		dbmopen(%diffbase, $diffname, 0666) or &print_error("(dbmopen) $diffname");
+		dbmopen(%::diffbase, $diffname, 0666) or &print_error("(dbmopen) $diffname");
 	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-		tie(%diffbase, "AnyDBM_File", $diffname, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $diffname");
+		tie(%::diffbase, "AnyDBM_File", $diffname, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $diffname");
 	} else {
-		tie(%diffbase, "Yuki::YukiWikiDB", $diffname) or &print_error("(tie Yuki::YukiWikiDB) $diffname");
+		tie(%::diffbase, "Yuki::YukiWikiDB", $diffname) or &print_error("(tie Yuki::YukiWikiDB) $diffname");
 	}
 }
 
 sub close_diff {
 	if ($modifier_dbtype eq 'dbmopen') {
-		dbmclose(%diffbase);
+		dbmclose(%::diffbase);
 	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-		untie(%diffbase);
+		untie(%::diffbase);
 	} else {
-		untie(%diffbase);
+		untie(%::diffbase);
 	}
 }
 
@@ -1158,18 +1173,26 @@ sub embedded_to_html {
 	my $embedded = shift;
 
 	if ($embedded =~ /$embed_plugin/) {
-		my $path = $plugin_dir . $1 . '.inc.pl';
-		my $action = '';
-		if (-e $path) {
-			$action = "\&plugin_" . $1 . "_convert('$3')";
-		} else {
-			$path = $plugin_dir . $1 . '.pl';
+		if (!$_plugined{$1}) {
+			my $path = $plugin_dir . $1 . '.inc.pl';
 			if (-e $path) {
-				$action = "\&$1::plugin_block('$3');";
+				require $path;
+				$_plugined{$1} = 1;	# Pyuki
+			} else {
+				$path = $plugin_dir . $1 . '.pl';
+				if (-e $path) {
+					require $path;
+					$_plugined{$1} = 2;	# Yuki
+				}
 			}
 		}
+		my $action = '';
+		if ($_plugined{$1} == 1) {
+			$action = "\&plugin_" . $1 . "_convert('$3')";
+		} elsif ($_plugined{$1} == 2) {
+			$action = "\&$1::plugin_block('$3');";
+		}
 		if ($action ne '') {
-			require $path;
 			$_ = eval $action;
 			return ($_) ? $_ : &htmlspecialchars($embedded);
 		}
@@ -1186,18 +1209,27 @@ sub embedded_inline {
 			if ($arg ne '') { $arg .= "," }
 			$arg .= $5;
 		}
-		my $path = $plugin_dir . $1 . '.inc.pl';
-		my $action = '';
-		if (-e $path) {
-			$action = "\&plugin_" . $1 . "_inline('$arg')";
-		} else {
-			$path = $plugin_dir . $1 . '.pl';
+
+		if (!$_plugined{$1}) {
+			my $path = $plugin_dir . $1 . '.inc.pl';
 			if (-e $path) {
-				$action = "\&$1::plugin_inline('$arg');";
+				require $path;
+				$_plugined{$1} = 1;	# Pyuki
+			} else {
+				$path = $plugin_dir . $1 . '.pl';
+				if (-e $path) {
+					require $path;
+					$_plugined{$1} = 2;	# Yuki
+				}
 			}
 		}
+		my $action = '';
+		if ($_plugined{$1} == 1) {
+			$action = "\&plugin_" . $1 . "_inline('$arg')";
+		} elsif ($_plugined{$1} == 2) {
+			$action = "\&$1::plugin_inline('$arg');";
+		}
 		if ($action ne '') {
-			require $path;
 			$_ = eval $action;
 			if ($_) { return $_; }
 		}
@@ -1321,13 +1353,13 @@ sub date
 	$format =~ s/I/$isdst/ge;	# I(Upper i):1 Summertime/0:Not
 
 	# Not Allowed
-	# L ‰[”N‚Å‚ ‚é‚©‚Ç‚¤‚©‚ğ•\‚·˜_—’lB 1‚È‚ç‰[”NB0‚È‚ç‰[”N‚Å‚Í‚È‚¢B 
-	# O ƒOƒŠƒjƒbƒW•W€(GMT)‚Æ‚ÌŠÔ· Example: +0200 
-	# r RFC 822 ƒtƒH[ƒ}ƒbƒg‚³‚ê‚½“ú•t Example: Thu, 21 Dec 2000 16:01:07 +0200 
-	# S ‰pŒêŒ`®‚Ì˜”‚ğ•\‚·ƒTƒtƒBƒbƒNƒXB2 •¶šB st, nd, rd or th. Works well with j  
-	# T ‚±‚Ìƒ}ƒV[ƒ“‚Ìƒ^ƒCƒ€ƒ][ƒ“‚Ìİ’èB Examples: EST, MDT ... 
-	# U Unix (1970”N1Œ1“ú00•ª0•b)‚©‚ç‚Ì•b” See also time() 
-	# W ISO-8601 Œ—j“ú‚Én‚Ü‚é”N’PˆÊ‚ÌT”Ô† (PHP 4.1.0‚Å’Ç‰Á) Example: 42 (the 42nd week in the year) 
+	# L uzzÌqÃqÛÒíÒ§qÅq¢q§qûÜ{qµ|İ|<yóÒa 1qÆqéÖzzÌqa0qÆqéÖzzÌqÃqËqÆq qa 
+	# O rnr)r³Ó£Óv{vxÛ‰GMT)qÄqÊÛÖÒwV Example: +0200 
+	# r RFC 822 rÇÓgqzrÙÓ£Ó­Ò±qïÒ»zÓÜÇExample: Thu, 21 Dec 2000 16:01:07 +0200 
+	# S u¿×ï×Ş®qÊx7xÃÒûÜ{qµrsrÇÓar£Ómrwqa2 {UÓÒa st, nd, rd or th. Works well with j  
+	# T q¯qÊrÙÓuqzr2qÊr}rbrr|qzr2qÊxÛyëÒa Examples: EST, MDT ... 
+	# U Unix Û‰1970zÌ1v·’zÓ‘Û‘{I0{£Šq§qéÒÊ{£ÙÃSee also time() 
+	# W ISO-8601 v·İ³ÛÓÒÇnqÚqíÛÌyÎtÈqÊxszÒw% (PHP 4.1.0qÃyÅu`) Example: 42 (the 42nd week in the year) 
 	$format =~ s/z/$yday/ge;	# z:days/year 0-366
 	return $format;
 }
