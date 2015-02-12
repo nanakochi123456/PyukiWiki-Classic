@@ -1,12 +1,12 @@
-* このページはPyukiWikiのFrontPageです。
-PyukiWiki とは YukiWikiベースの PukiWiki風 Wiki です。~
-もしあなたが管理者なら、このPyukiWikiを公開する前に、~
-FrontPage を編集して、
-あなた独自のFrontPageを作ってください。
-
-- PyukiWikiの公式情報は http://nekyo.hp.infoseek.co.jp/ にあります。 
-- RecentChangesが最近更新されたページの一覧になります。
-- 練習にはSandBoxがお勧めです。
-- あなたの作ったページを、是非[[ソーシャルブックマーク>http://nekyo.hp.infoseek.co.jp/?%a5%bd%a1%bc%a5%b7%a5%e3%a5%eb%a5%d6%a5%c3%a5%af%a5%de%a1%bc%a5%af]] で紹介して下さい。
-
+* このページはPyukiWikiのFrontPageです。
+PyukiWiki とは YukiWikiベースの PukiWiki風 Wiki です。~
+もしあなたが管理者なら、このPyukiWikiを公開する前に、~
+FrontPage を編集して、あなた独自のFrontPageを作ってください。
+
+PerlのCGIで動作します。~
+
+- PyukiWikiの公式情報は http://nekyo.hp.infoseek.co.jp/ にあります。 
+- RecentChangesが最近更新されたページの一覧になります。
+- 練習にはSandBoxがお勧めです。
+
 #counter
