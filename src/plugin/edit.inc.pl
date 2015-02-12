@@ -54,19 +54,19 @@ sub editform {
 <a href="javascript:insTag('%%%','%%%','underline');"><u>U</u></a>
 <a href="javascript:insTag('%%','%%','delline');"><del>D</del></a>
 <a href="javascript:insTag('\\n-','','list');">
-<img src="$::modifierlink_data/image/list.gif" alt="list" border="0" vspace="0"
+<img src="$::image_dir/list.gif" alt="list" border="0" vspace="0"
   hspace="1"></a>
 <a href="javascript:insTag('\\n+','','list');">
-<img src="$::modifierlink_data/image/numbered.gif" alt="list" border="0" vspace="0"
+<img src="$::image_dir/numbered.gif" alt="list" border="0" vspace="0"
   hspace="1"></a>
 <a href="javascript:insTag('\\nCENTER:','\\n','centering');">
-<img src="$::modifierlink_data/image/center.gif" alt="center" border="0" vspace="0"
+<img src="$::image_dir/center.gif" alt="center" border="0" vspace="0"
   hspace="1"></a>
 <a href="javascript:insTag('\\nLEFT:','\\n','left');">
-<img src="$::modifierlink_data/image/left_just.gif" alt="left" border="0" vspace="0"
+<img src="$::image_dir/left_just.gif" alt="left" border="0" vspace="0"
   hspace="1"></a>
 <a href="javascript:insTag('\\nRIGHT:','\\n','right');">
-<img src="$::modifierlink_data/image/right_just.gif" alt="right" border="0" vspace="0"
+<img src="$::image_dir/right_just.gif" alt="right" border="0" vspace="0"
   hspace="1"></a>
 <a href="javascript:insTag('\\n*','','title');"><b>H</b></a>
 <a href="javascript:insTag('[[',']]','wikipage');">[[]]</a>
@@ -100,11 +100,13 @@ EOD
 EOD
 	unless ($mode{conflict}) {
 		# Show the format rule.
-		open(FILE, $::file_format) or &print_error("($::file_format)");
-		my $content = join('', <FILE>);
-		&code_convert(\$content, $::kanjicode);
-		close(FILE);
-		$body .= &text_to_html($content, toc=>0);
+		#open(FILE, $::file_format) or &print_error("($::file_format)");
+		#my $content = join('', <FILE>);
+		#&code_convert(\$content, $::kanjicode);
+		#close(FILE);
+		#$body .= &text_to_html($content, toc=>0);
+		$body .= &text_to_html($::database{$::rule_page}, toc=>0);
+
 	}
 	return $body;
 }

@@ -1,8 +1,8 @@
 ############################################################
-# counter ƒvƒ‰ƒOƒCƒ“
+# counter rËÓ(rnrbr2
 # counter.inc.pl
 # Copyright(c) 2004 Nekyo.
-# v0.0.1 ”r‘¼§Œä’Ç‰Á
+# v0.0.1 zÿÚ[xŽ¥vãÚŽÅu`
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # 1TAB=4Spaces
 
@@ -51,7 +51,7 @@ sub plugin_counter_get_count {
 		return %default;
 	}
 
-	my $file = $::counter_dir . &encode($page) . $::counter_ext;
+	my $file = $::counter_dir . "/" . &encode($page) . $::counter_ext;
 
 	my @keys = keys(%default);
 	my $modify = 0;
@@ -85,8 +85,8 @@ sub plugin_counter_get_count {
 
 	if ($modify == 1) {
 		if (FILE) {
-			truncate(FILE, 0);	# ƒtƒ@ƒCƒ‹ƒTƒCƒY‚ð0ƒoƒCƒg‚É‚·‚é
-			seek(FILE, 0, 0);	# ƒtƒ@ƒCƒ‹ƒ|ƒCƒ“ƒ^‚ðæ“ª‚ÉƒZƒbƒg
+			truncate(FILE, 0);	# rÇÓ_rbr*rsrbrxqû‘r½Óbr­ÒŽÇqŽµqìî
+			seek(FILE, 0, 0);	# rÇÓ_rbr*r×Óbr2r}qûÙçÛIqŽÇryr£Ó¬î
 		} else {
 			open(FILE, ">$file") or return "Counter Conflict.<br />\n";
 			flock(FILE, 2);

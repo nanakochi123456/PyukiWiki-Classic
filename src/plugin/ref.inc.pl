@@ -39,8 +39,8 @@
 use strict;
 
 my $file_icon = '<img src="'
-	. $::modifierlink_data
-	. '/image/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
+	. $::image_dir
+	. '/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
 
 # default alignment
 my $ref_default_align = 'left'; # 'left','center','right'
@@ -182,7 +182,7 @@ sub plugin_ref_body
 		$title = &htmlspecialchars(($name =~ '/([^\/]+)$/') ? $1 : $url);
 		$is_image = (!$params{noimg} and $name =~ /\.(gif|png|jpe?g)$/i);
 	} else {	# 添付ファイル
-		if (!-d $::upload_dir) {
+		if (!-d "$::upload_dir/") {
 			$params{_error} = 'no $::upload_dir.';
 			return %params;
 		}
@@ -194,8 +194,8 @@ sub plugin_ref_body
 			$name = $2;
 		}
 		$title = &htmlspecialchars($name);
-		my $file = $::upload_dir . &::dbmname($page) . '_' . &::dbmname($name);
-		my $file2 = $::upload_link . &::dbmname($page) . '_' . &::dbmname($name);
+		my $file  = "$::upload_dir/" . &::dbmname($page) . '_' . &::dbmname($name);
+		my $file2 = "$::upload_link/" . &::dbmname($page) . '_' . &::dbmname($name);
 		if (!-e $file) {
 			$params{_error} = 'file not found.' . $file;
 			return %params;

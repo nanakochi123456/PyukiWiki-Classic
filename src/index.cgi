@@ -1,3 +1,4 @@
+#!/usr/bin/perl --
 #!/usr/local/bin/perl --
 #
 # wiki.cgi - This is PyukiWiki, yet another Wiki clone.
@@ -5,8 +6,7 @@
 # Copyright (C) 2004 by Nekyo.
 # http://nekyo.hp.infoseek.co.jp/
 #
-# Based on YukiWiki <hyuki@hyuki.com> http://www.hyuki.com/yukiwiki/
-# Powerd by PukiWiki http://pukiwiki.org/
+# Based on YukiWiki
 #
 # 1TAB=4Spaces
 #
@@ -17,8 +17,9 @@
 # Libraries.
 use strict;
 # if you can use lib is ../lib then swap this comment
-use lib qw(. lib);
-# use lib qw(. ../lib);
+BEGIN {
+	push @INC, 'lib';
+}
 
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser);
@@ -36,11 +37,12 @@ use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
-$::version = '0.1.2';
+$::version = '0.1.3';
 ##############################
 # You MUST modify following initial file.
 
 require 'pyukiwiki.ini.cgi';
+require $::skin_file;
 
 ##############################
 #
@@ -50,9 +52,7 @@ my $modifier_dbtype = 'YukiWikiDB';
 my $modifier_sendmail = '';
 #my $modifier_sendmail = '/usr/sbin/sendmail -t -n';
 ##############################
-#
 # You MAY modify following variables.
-#
 
 if ($::lang eq 'ja') {
 	if ($::kanjicode eq 'euc') {
@@ -66,18 +66,10 @@ if ($::lang eq 'ja') {
 	$::charset = 'gb2312';
 }
 
-my $file_touch = "$::modifier_dir_data/touched.txt";
-my $file_resource = "$::modifier_dir_data/resource.$::lang.txt";
-my $file_conflict = "$::modifier_dir_data/conflict.txt";
-my $url_stylesheet = "$::modifierlink_data/default.ja.css"; # wiki.css -> default.ja.css
-$::maxrecent = 50;
+my $file_resource = "$::data_home/resource.$::lang.txt";
+my $file_conflict = "$::data_home/conflict.$::lang.txt";
+
 ##############################
-#
-# You MAY modify following variables.
-#
-$::dataname = "$::modifier_dir_data/wiki";
-my $infoname = "$::modifier_dir_data/info";
-my $diffname = "$::modifier_dir_data/diff";
 my $editchar = '?';
 my $subject_delimiter = ' - ';
 my $use_autoimg = 1; # automatically convert image URL into <img> tag.
@@ -88,7 +80,6 @@ my $interwikiName = 'InterWikiName';
 my $AdminChangePassword = 'AdminChangePassword';
 my $CompletedSuccessfully = 'CompletedSuccessfully';
 my $ErrorPage = 'ErrorPage';
-my $AdminSpecialPage = 'Admin Special Page'; # must include spaces.
 
 ##############################
 my $wiki_name = '\b([A-Z][a-z]+([A-Z][a-z]+)+)\b';
@@ -122,18 +113,12 @@ my %infobase;
 %::diffbase;
 %::interwiki;
 ##############################
-my %page_command = (
-	$AdminChangePassword => 'adminchangepasswordform',
-);
 my %command_do = (
 	read => \&do_read,
-	adminchangepasswordform => \&do_adminchangepasswordform,
-	adminchangepassword => \&do_adminchangepassword,
 	write => \&do_write,
 	createresult => \&do_createresult,
 );
 
-$::counter_dir = "$::modifier_dir_data/counter/";
 $::counter_ext = '.count';
 my $lastmod;	# v0.0.9
 my %_plugined;	# 1:Pyuki/2:Yuki/0:None
@@ -145,6 +130,8 @@ if (!$::upload_link) {
 ##############################
 my $_conv_start;
 $_conv_start = (times)[0] if ($::enable_convtime != 0);
+
+@::notes = ();
 
 &main;
 exit(0);
@@ -166,9 +153,7 @@ sub main {
 				my %ret = eval $action;
 				if (($ret{msg} ne '') && ($ret{body} ne '')) {
 					$exec = 0;
-					&print_header($ret{msg});
-					print $ret{body};
-					&print_footer($ret{msg});
+					&skin($ret{msg}, $ret{body}, 0);
 				}
 			}
 		}
@@ -181,91 +166,17 @@ sub main {
 }
 
 sub do_read {
-	&print_header($::form{mypage});
-	if (&is_exist_page($::Header)) {
-		print "<div id=\"pageheader\">";
-		&print_content($::database{$::Header});
-		print "</div>";
-	}
-
-	print <<"EOD";
-<table border="0" style="width:100%">
-  <tr>
-    <td class="menubar">
-    <div id="menubar">
-EOD
-	my $mypage = $::form{mypage};	# push;
-	$::form{mypage} = $::MenuBar;
-	&print_content($::database{$::form{mypage}});
-	$::form{mypage} = $mypage;		# pop
-
-	print <<"EOD";
-    </div>
-    </td>
-    <td valign=top>
-EOD
-	&print_content($::database{$::form{mypage}});
-	print <<"EOD";
-    </td>
-  </tr>
-</table>
-EOD
-	if (&is_exist_page($::Footer)) {
-		print "<div id=\"pagefooter\">";
-		&print_content($::database{$::Footer});
-		print "</div>";
-	}
-	&print_footer($::form{mypage});
-}
-
-sub do_adminchangepasswordform {
-	&print_header($AdminChangePassword);
-	&print_passwordform;
-	&print_footer($AdminChangePassword);
-}
-
-sub do_adminchangepassword {
-	if ($::form{mynewpassword} ne $::form{mynewpassword2}) {
-		&print_error($::resource{passwordmismatcherror});
-	}
-	my ($validpassword_crypt) = &get_info($AdminSpecialPage, $info_AdminPassword);
-	if ($validpassword_crypt) {
-		if (not &valid_password($::form{myoldpassword})) {
-			&send_mail_to_admin(<<"EOD", "AdminChangePassword");
-myoldpassword=$::form{myoldpassword}
-mynewpassword=$::form{mynewpassword}
-mynewpassword2=$::form{mynewpassword2}
-EOD
-			&print_error($::resource{passworderror});
-		}
-	}
-	my ($sec, $min, $hour, $day, $mon, $year, $weekday) = localtime(time);
-	my (@token) = ('0'..'9', 'A'..'Z', 'a'..'z');
-	my $salt1 = $token[(time | $$) % scalar(@token)];
-	my $salt2 = $token[($sec + $min*60 + $hour*60*60) % scalar(@token)];
-	my $crypted = crypt($::form{mynewpassword}, "$salt1$salt2");
-	&set_info($AdminSpecialPage, $info_AdminPassword, $crypted);
-
-	&print_header($CompletedSuccessfully);
-	&print_message($::resource{passwordchanged});
-	&print_footer($CompletedSuccessfully);
+	&skin($::form{mypage}, &text_to_html($::database{$::form{mypage}}), 1);
 }
 
 sub do_write {
-	if (&frozen_reject()) {
-		return;
-	}
+	return if (&frozen_reject());
 
 	if (not &is_editable($::form{mypage})) {
-		&print_header($::form{mypage});
-		&print_message($::resource{cantchange});
-		&print_footer($::form{mypage});
+		&skin($::form{mypage}, &message($::resource{cantchange}), 0);
 		return;
 	}
-
-	if (&conflict($::form{mypage}, $::form{mymsg})) {
-		return;
-	}
+	return if (&conflict($::form{mypage}, $::form{mymsg}));
 
 	$::form{mymsg} =~ s/&date;/&date($::date_format)/gex;
 	$::form{mymsg} =~ s/&time;/&date($::time_format)/gex;
@@ -295,157 +206,16 @@ sub do_write {
 		&send_mail_to_admin($::form{mypage}, "Delete");
 		delete $::database{$::form{mypage}};
 		delete $infobase{$::form{mypage}};
-		if ($::form{mytouch}) {
-			&update_recent_changes;
-		}
-		&print_header($::form{mypage});
-		&print_message($::resource{deleted});
-		&print_footer($::form{mypage});
+		&update_recent_changes if ($::form{mytouch});
+
+		&skin($::form{mypage}, &message($::resource{deleted}), 0);
 	}
 }
 
 sub print_error {
 	my ($msg) = @_;
-	&print_header($ErrorPage);
-	print qq(<p><strong class="error">$msg</strong></p>);
-	&print_footer($ErrorPage);
+	&skin($ErrorPage, qq(<p><strong class="error">$msg</strong></p>), 0);
 	exit(0);
-}
-
-sub print_header {
-	my ($page) = @_;
-	my $bodyclass = "normal";
-	my $editable = 0;
-	my $admineditable = 0;
-
-	if (&is_frozen($page) and $::form{cmd} =~ /^(read|write)$/) {
-		$editable = 0;
-		$admineditable = 1;
-		$bodyclass = "frozen";
-	} elsif (&is_editable($page) and $::form{cmd} =~ /^(read|write)$/) {
-		$admineditable = 1;
-		$editable = 1;
-	} else {
-		$editable = 0;
-	}
-	my $cookedpage = &encode($page);
-	my $escapedpage = &htmlspecialchars($page);
-	my $HelpPage = &encode($::resource{help});
-
-	if ($::last_modified != 0) {	# v0.0.9
-		$lastmod = &date("Y-m-d H:i:s", (stat($::dataname . "/" . &dbmname($page) . ".txt"))[9]);
-	}
-	print <<"EOD";
-Content-type: text/html; charset=$::charset
-
-<!DOCTYPE html
-    PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-    "http://www.w3.org/TR/html4/loose.dtd">
-<html lang="$::lang">
-<head>
-  <meta http-equiv="Content-Language" content="$::lang">
-  <meta http-equiv="Content-Type" content="text/html; charset=$::charset">
-  <title>$escapedpage @{[&htmlspecialchars(&get_subjectline($page))]}</title>
-  <link rel="index" href="$::script?cmd=list">
-  <link rev="made" href="mailto:$::modifier_mail">
-  <link rel="stylesheet" href="$url_stylesheet" type="text/css" media="screen" charset="Shift_JIS" />
-  <link rel="stylesheet" href="blosxom.css" type="text/css" media="screen" charset="Shift_JIS" />
-  <link rel="stylesheet" href="print.ja.css" type="text/css" media="print" charset="Shift_JIS" />
-EOD
-	if ($::extend_edit) {
-		print '<script type="text/javascript" src="' . $::modifierlink_data . '/instag.js"></script>' . "\n";
-	}
-	print <<"EOD";
-</head>
-<body class="$bodyclass">
-<div id="header">
- <a href="$::modifierlink">$::icontag</a>
-<h1 class="title"><a
-    title="$::resource{searchthispage}"
-    href="$::script?cmd=search&amp;mymsg=$cookedpage">@{[&htmlspecialchars($page)]}</a></h1>
-<a href="$::script?$cookedpage">$::script?$cookedpage</a>
-</div>
-<div id="navigator">
-
- [ <a href="$::script?$cookedpage">$::resource{reload}</a> ]
- &nbsp;
- [ <a href="$::script?cmd=newpage">$::resource{createbutton}</a>
- @{[ $editable
-   ? qq( | <a title="$::resource{editthispage}" href="$::script?cmd=edit&amp;mypage=$cookedpage">$::resource{editbutton}</a>)
-   : qq()
- ]}
- @{[ $admineditable
-   ? qq( | <a title="$::resource{admineditthispage}" href="$::script?cmd=adminedit&amp;mypage=$cookedpage">$::resource{admineditbutton}</a>)
-   : qq()
- ]}
- @{[ $admineditable
-   ? qq( | <a href="$::script?cmd=diff&amp;mypage=$cookedpage">$::resource{diffbutton}</a>)
-   : qq()
- ]}
- @{[ (-f "$::plugin_dir/attach.inc.pl")
-   ? qq( | <a href="$::script?cmd=attach&amp;mypage=$cookedpage">$::resource{attachbutton}</a>)
-   : qq()
- ]}
- ]
- &nbsp;
- [ <a href="$::script?$::FrontPage">$::resource{top}</a> | 
-   <a href="$::script?cmd=list">$::resource{indexbutton}</a> | 
-   <a href="$::script?cmd=search">$::resource{searchpage}</a> |
-   <a href="$::script?$::RecentChanges">$::resource{recentchangesbutton}</a> |
-   <a href="$::script?$HelpPage">$::resource{help}</a> ]
-</div>
-<hr class="full_hr" />
-@{[ $::last_modified == 1
-  ? qq(<div id="lastmodified">$::lastmod_prompt $lastmod</div>)
-  : q()
-]}
-EOD
-}
-
-my @notes = ();
-
-sub print_footer {
-	my ($page) = @_;
-
-	if (@notes) {
-		print << "EOD";
-<div id="note">
-<hr class="note_hr" />
-EOD
-		my $cnt = 1;
-		foreach my $note (@notes) {
-			print << "EOD";
-<a id="notefoot_$cnt" href="#notetext_$cnt" class="note_super">*$cnt</a>
-<span class="small">@{[&inline($note)]}</span>
-<br />
-EOD
-			$cnt++;
-		}
-		print("</div>\n");
-	}
-
-	print <<"EOD";
-<hr class="full_hr" />
-<div id="toolbar"><a href="$::script?cmd=rss10"><img src="$::modifierlink_data/image/rss.png" border="0" /></a></div>
-@{[ $::last_modified == 2
- ? qq(<div id="lastmodified">$::lastmod_prompt $lastmod</div>)
- : qq()
-]}
-<div id="footer">
-Modified by <a href="$::modifierlink">$::modifier</a><br /><br />
-<b>"PyukiWiki" $::version</b>
-Copyright&copy; 2004 by <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>.<br />
-Based on "YukiWiki" 2.1.0 by <a href="http://www.hyuki.com/yukiwiki/">yuki</a>
-and <a href="http://pukiwiki.org">"PukiWiki"</a><br />
-EOD
-	if ($::enable_convtime != 0) {
-		printf('<br />HTML convert time to %.3f sec.<br />', (times)[0] - $_conv_start);
-	}
-	print <<"EOD";
-</div>
-</body>
-</html>
-EOD
 }
 
 sub escape {
@@ -464,13 +234,12 @@ sub unescape {
 
 sub print_content {
 	my ($rawcontent) = @_;
-	print &text_to_html($rawcontent, toc=>1);
+	print &text_to_html($rawcontent);
 }
 
 sub text_to_html {
-	my ($txt, %option) = @_;
+	my ($txt) = @_;
 	my (@txt) = split(/\r?\n/, $txt);
-	my (@toc);
 	my $verbatim;
 	my $tocnum = 0;
 	my (@saved, @result);
@@ -494,14 +263,15 @@ sub text_to_html {
 		# non-verbatim follows.
 		push(@result, shift(@saved)) if (@saved and $saved[0] eq '</pre>' and /^[^ \t]/);
 		if (/^(\*{1,3})(.+)/) {
-			# $hn = 'h2', 'h3' or 'h4'
-			my $hn = "h" . (length($1) + 1);
-			push(@toc, '-' x length($1) . qq( <a href="#i$tocnum">@{[&htmlspecialchars($2)]}</a>\n));
-			if ($tocnum == 0) {
-				push(@result, splice(@saved), qq(<$hn><a name="i$tocnum"> </a>) . &inline($2) . qq(</$hn>));
-			} else {
-				push(@result, splice(@saved), qq(<div class="jumpmenu"><a href="#navigator">&uarr;</a></div><$hn><a name="i$tocnum"> </a>) . &inline($2) . qq(</$hn>));
-			}
+			my $hn = "h" . (length($1) + 1);	# $hn = 'h2', 'h3' or 'h4'
+			my $hedding = ($tocnum != 0)
+				? qq(<div class="jumpmenu"><a href="#navigator">&uarr;</a></div>)
+				: '';
+
+			my $nametag = ($::IsMenu == 1) ? "m" : "i";
+			push(@result, splice(@saved),
+				$hedding . qq(<$hn><a name="$nametag$tocnum"> </a>) . &inline($2) . qq(</$hn>)
+			);
 			$tocnum++;
 		} elsif (/^(-{2,3})\($/) {
 			if ($& eq '--(') {
@@ -523,12 +293,14 @@ sub text_to_html {
 			&back_push('ol', length($1), \@saved, \@result,
 				" class=\"list" . length($1) . "\" style=\"padding-left:16px;margin-left:16px;\"");
 			push(@result, '<li>' . &inline($2) . '</li>');
-		} elsif (/^:([^:]+):(.+)/) {
-			&back_push('dl', 1, \@saved, \@result);
-			push(@result, '<dt>' . &inline($1) . '</dt>', '<dd>' . &inline($2) . '</dd>');
-		} elsif (/^:([^\|]+)\|(.*)/) {
-			&back_push('dl', 1, \@saved, \@result);
-			push(@result, '<dt>' . &inline($1) . '</dt>', '<dd>' . &inline($2) . '</dd>');
+		} elsif ((/^:([^:]+):(.*)/) || (/^:([^\|]+)\|(.*)/)) {
+			push(@saved, '<dl><dt>', &inline($1) . "</dt>\n<dd>");
+			push(@saved, &inline($2));
+			$verbatim = { func => \&inline, done => '' };
+			&back_push('', 0, \@saved, \@result);
+			push(@saved, "</dd>\n</dl>");
+		#	&back_push('dl', 1, \@saved, \@result);
+		#	push(@result, '<dt>' . &inline($1) . '</dt>', '<dd>' . &inline($2) . '</dd>');
 		} elsif (/^(>{1,3})(.+)/) {
 			&back_push('blockquote', length($1), \@saved, \@result);
 			push(@result, &inline($2));
@@ -577,28 +349,7 @@ sub text_to_html {
 		}
 	}
 	push(@result, splice(@saved));
-
-	if (0) { # $option{toc}) {
-		# Convert @toc (table of contents) to HTML.
-		# This part is taken from Makio Tsukamoto's WalWiki.
-		my (@tocsaved, @tocresult);
-		foreach (@toc) {
-			if (/^(-{1,3})(.*)/) {
-				&back_push('ul', length($1), \@tocsaved, \@tocresult);
-				push(@tocresult, '<li>' . $2 . '</li>');
-			}
-		}
-		push(@tocresult, splice(@tocsaved));
-
-		# Insert "table of contents".
-		if (@tocresult) {
-			unshift(@tocresult, qq(<h2>$::resource{table_of_contents}</h2>));
-		}
-
-		return join("\n", @tocresult, @result);
-	} else {
-		return join("\n", @result);
-	}
+	return join("\n", @result);
 }
 
 sub back_push {
@@ -631,6 +382,8 @@ sub inline {
 	$line =~ s!^(RED|BLUE|GREEN):(.*)$!<font color="$1">$2</font>!g;	# v0.0.9 Tnx hash.
 	$line =~ s|\(\((.*)\)\)|&note($1)|gex;
 
+	$line =~ s|\[\#(.*)\]|<a class="anchor_super" id="$1" href="#$1" title="$1">$::_symbol_anchor</a>|g;
+
 	if ($line =~ /^$embedded_name$/) {
 		$line =~ s!^$embedded_name$!&embedded_to_html($1)!gex;	# #command
 	} else {
@@ -645,35 +398,32 @@ sub inline {
 				($wiki_name)			# LocalLinkLikeThis
 					|
 				($embed_inline)			# &user_defined_plugin(123,hello)
-				)
+			)
 			!
 				&make_link($1)
 			!gex;
 	}
 
 	if ($::usefacemark == 1) {
-		$line =~ s|\s(\:\))| <img src="$::modifierlink_data/face/smile.png" alt="$1" />|g;
-		$line =~ s|\s(\:D)| <img src="$::modifierlink_data/face/bigsmile.png" alt="$1" />|g;
-		$line =~ s|\s(\:p)| <img src="$::modifierlink_data/face/huh.png" alt="$1" />|g;
-		$line =~ s|\s(\:d)| <img src="$::modifierlink_data/face/huh.png" alt="$1" />|g;
-		$line =~ s|\s(XD)| <img src="$::modifierlink_data/face/oh.png" alt="$1" />|g;
-		$line =~ s|\s(X\()| <img src="$::modifierlink_data/face/oh.png" alt="$1" />|g;
-		$line =~ s|\s(;\))| <img src="$::modifierlink_data/face/wink.png" alt="$1" />|g;
-		$line =~ s|\s(;\()| <img src="$::modifierlink_data/face/sad.png" alt="$1" />|g;
-		$line =~ s|\s(\:\()| <img src="$::modifierlink_data/face/sad.png" alt="$1" />|g;
-		$line =~ s|&(heart);|<img src="$::modifierlink_data/face/heart.png" alt="$1" />|g;
+		$line =~ s!\s(\:\)|\(\^\^\))! <img src="$::image_dir/face/smile.png" alt="$1" />!g;
+		$line =~ s!\s(\:D|\(\^-\^\))! <img src="$::image_dir/face/bigsmile.png" alt="$1" />!g;
+		$line =~ s!\s(\:p|\:d)! <img src="$::image_dir/face/huh.png" alt="$1" />!g;
+		$line =~ s!\s(XD|X\(|\(\.\.;)! <img src="$::image_dir/face/oh.png" alt="$1" />!g;
+		$line =~ s!\s(;\)|\(\^_-\))! <img src="$::image_dir/face/wink.png" alt="$1" />!g;
+		$line =~ s!\s(;\(|\:\(|\(--;\))! <img src="$::image_dir/face/sad.png" alt="$1" />!g;
+		$line =~ s!&(heart);!<img src="$::image_dir/face/heart.png" alt="$1" />!g;
+		$line =~ s!\s\(\^\^;\)?! <img src="$::image_dir/face/worried.png" alt="$1" />!g;
 	}
-
 	return $line;
 }
 
 sub note {
 	my ($msg) = @_;
 
-	push(@notes, $msg);
-	return "<a id=\"notetext_" . @notes . "\" "
-		. "href=\"#notefoot_" . @notes . "\" class=\"note_super\">*"
-		. @notes . "</a>";
+	push(@::notes, $msg);
+	return "<a id=\"notetext_" . @::notes . "\" "
+		. "href=\"#notefoot_" . @::notes . "\" class=\"note_super\">*"
+		. @::notes . "</a>";
 }
 
 sub make_link {
@@ -682,9 +432,8 @@ sub make_link {
 		if ($use_autoimg and $chunk =~ /\.(gif|png|jpeg|jpg)$/) {
 			return qq(<a href="$chunk"><img src="$chunk"></a>);
 		} else {
-			if ($::use_popup != 0) {	# v0.0.9
-				return qq(<a href="$chunk" target="_blank" >$chunk</a>);
-			}
+			# v0.0.9
+			return qq(<a href="$chunk" target="_blank" >$chunk</a>) if ($::use_popup != 0);
 			return qq(<a href="$chunk">$chunk</a>);
 		}
 	} elsif ($chunk =~ /^(mailto):(.*)/) {
@@ -713,9 +462,9 @@ sub make_link {
 			if ($use_autoimg and $escapedchunk =~ /\.(gif|png|jpeg|jpg)$/) {
 				return qq(<a href="$chunk"><img src="$escapedchunk"></a>);
 			} else {
-				if ($::use_popup != 0) {	# v0.0.9
-					return qq(<a href="$chunk" target="_blank" >$escapedchunk</a>);
-				}
+				# v0.0.9
+				return qq(<a href="$chunk" target="_blank" >$escapedchunk</a>)
+					if ($::use_popup != 0);
 				return qq(<a href="$chunk">$escapedchunk</a>);
 			}
 		} elsif ($chunk =~ /^$interwiki_name2$/) {
@@ -724,9 +473,9 @@ sub make_link {
 				my ($code, $url) = %{$::interwiki2{$intername}};
 				$url =~ s/\$1/&interwiki_convert($code, $keyword)/e;
 				$url = &htmlspecialchars($url.$anchor);
-				if ($::use_popup != 0) {	# v0.0.9
-					return qq(<a href="$url" target="_blank">$escapedchunk</a>);
-				}
+				# v0.0.9
+				return qq(<a href="$url" target="_blank">$escapedchunk</a>)
+					if ($::use_popup != 0);
 				return qq(<a href="$url">$escapedchunk</a>);
 			} else {
 				return $escapedchunk;
@@ -747,8 +496,6 @@ sub make_link {
 		$cookedchunk  = &encode($chunk);
 		if ($::database{$chunk}) {
 			return qq(<a title="$chunk" href="$::script?$cookedchunk">$escapedchunk</a>);
-		} elsif ($page_command{$chunk}) {
-			return qq(<a title="$escapedchunk" href="$::script?$cookedchunk">$escapedchunk</a>);
 		} elsif (($chunk =~ /^([^#]*)#/) && $::database{$1}) {
 			return qq(<a title="$chunk" href="$::script?$chunk">$escapedchunk</a>);
 		} elsif (&is_editable($chunk)) {
@@ -761,25 +508,20 @@ sub make_link {
 sub get_fullname {
 	my ($name, $refer) = @_;
 
-	if ($name eq '') {
-		return $refer;
-	}
+	return $refer if ($name eq '');
 	if ($name eq '/') {
 		$name = substr($name,1);
 		return ($name eq '') ? $::FrontPage : $name;
 	}
-	if ($name eq './') {
-		return $refer;
-	}
+	return $refer if ($name eq './');
 	if (substr($name,0,2) eq './') {
-		return ($1)? $refer.'/'.$1: $refer;
+		return ($1) ? $refer . '/' . $1 : $refer;
 	}
 	if (substr($name,0,3) eq '../') {
 		my @arrn = split('/', $name);
 		my @arrp = split('/', $refer);
 
-		while (@arrn > 0 and $arrn[0] eq '..')
-		{
+		while (@arrn > 0 and $arrn[0] eq '..') {
 			shift(@arrn);
 			pop(@arrp);
 		}
@@ -789,9 +531,9 @@ sub get_fullname {
 	return $name;
 }
 
-sub print_message {
+sub message {
 	my ($msg) = @_;
-	print qq(<p><strong>$msg</strong></p>);
+	return qq(<p><strong>$msg</strong></p>);
 }
 
 sub init_form {
@@ -811,10 +553,7 @@ sub init_form {
 		}
 	}
 
-	if ($page_command{$query}) {
-		$::form{cmd} = $page_command{$query};
-		$::form{mypage} = $query;
-	} elsif ($query =~ /^($wiki_name)$/) {
+	if ($query =~ /^($wiki_name)$/) {
 		$::form{cmd} = 'read';
 		$::form{mypage} = $1;
 	} elsif ($::database{$query}) {
@@ -849,16 +588,9 @@ sub update_recent_changes {
 			push(@updates, $_);
 		}
 	}
-	if (&is_exist_page($::form{mypage})) {
-		unshift(@updates, $update);
-	}
+	unshift(@updates, $update) if (&is_exist_page($::form{mypage}));
 	splice(@updates, $::maxrecent + 1);
 	$::database{$::RecentChanges} = join("\n", @updates);
-	if ($file_touch) {
-		open(FILE, "> $file_touch");
-		print FILE localtime() . "\n";
-		close(FILE);
-	}
 }
 
 sub get_subjectline {
@@ -868,10 +600,7 @@ sub get_subjectline {
 	} else {
 		# Delimiter check.
 		my $delim = $subject_delimiter;
-		if (defined($option{delimiter})) {
-			$delim = $option{delimiter};
-		}
-
+		$delim = $option{delimiter} if (defined($option{delimiter}));
 		# Get the subject of the page.
 		my $subject = $::database{$page};
 		$subject =~ s/\r?\n.*//s;
@@ -908,14 +637,14 @@ EOD
 
 sub open_db {
 	if ($modifier_dbtype eq 'dbmopen') {
-		dbmopen(%::database, $::dataname, 0666) or &print_error("(dbmopen) $::dataname");
-		dbmopen(%infobase, $infoname, 0666) or &print_error("(dbmopen) $infoname");
+		dbmopen(%::database, $::data_dir, 0666) or &print_error("(dbmopen) $::data_dir");
+		dbmopen(%infobase, $::info_dir, 0666) or &print_error("(dbmopen) $::info_dir");
 	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-		tie(%::database, "AnyDBM_File", $::dataname, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::dataname");
-		tie(%infobase, "AnyDBM_File", $infoname, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $infoname");
+		tie(%::database, "AnyDBM_File", $::data_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::data_dir");
+		tie(%infobase, "AnyDBM_File", $::info_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::info_dir");
 	} else {
-		tie(%::database, "Yuki::YukiWikiDB", $::dataname) or &print_error("(tie Yuki::YukiWikiDB) $::dataname");
-		tie(%infobase, "Yuki::YukiWikiDB", $infoname) or &print_error("(tie Yuki::YukiWikiDB) $infoname");
+		tie(%::database, "Yuki::YukiWikiDB", $::data_dir) or &print_error("(tie Yuki::YukiWikiDB) $::data_dir");
+		tie(%infobase, "Yuki::YukiWikiDB", $::info_dir) or &print_error("(tie Yuki::YukiWikiDB) $::info_dir");
 	}
 }
 
@@ -923,9 +652,9 @@ sub close_db {
 	if ($modifier_dbtype eq 'dbmopen') {
 		dbmclose(%::database);
 		dbmclose(%infobase);
-	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-		untie(%::database);
-		untie(%infobase);
+#	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
+#		untie(%::database);
+#		untie(%infobase);
 	} else {
 		untie(%::database);
 		untie(%infobase);
@@ -934,34 +663,22 @@ sub close_db {
 
 sub open_diff {
 	if ($modifier_dbtype eq 'dbmopen') {
-		dbmopen(%::diffbase, $diffname, 0666) or &print_error("(dbmopen) $diffname");
+		dbmopen(%::diffbase, $::diff_dir, 0666) or &print_error("(dbmopen) $::diff_dir");
 	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-		tie(%::diffbase, "AnyDBM_File", $diffname, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $diffname");
+		tie(%::diffbase, "AnyDBM_File", $::diff_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::diff_dir");
 	} else {
-		tie(%::diffbase, "Yuki::YukiWikiDB", $diffname) or &print_error("(tie Yuki::YukiWikiDB) $diffname");
+		tie(%::diffbase, "Yuki::YukiWikiDB", $::diff_dir) or &print_error("(tie Yuki::YukiWikiDB) $::diff_dir");
 	}
 }
 
 sub close_diff {
 	if ($modifier_dbtype eq 'dbmopen') {
 		dbmclose(%::diffbase);
-	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-		untie(%::diffbase);
+#	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
+#		untie(%::diffbase);
 	} else {
 		untie(%::diffbase);
 	}
-}
-
-sub print_passwordform {
-	print <<"EOD";
-<form action="$::script" method="post">
-  <input type="hidden" name="cmd" value="adminchangepassword">
-  $::resource{oldpassword} <input type="password" name="myoldpassword" size="10"><br>
-  $::resource{newpassword} <input type="password" name="mynewpassword" size="10"><br>
-  $::resource{newpassword2} <input type="password" name="mynewpassword2" size="10"><br>
-  <input type="submit" value="$::resource{changepasswordbutton}"><br>
-</form>
-EOD
 }
 
 sub is_editable {
@@ -992,11 +709,7 @@ sub is_editable {
 #   not_wiki_name -> [[not_wiki_name]]
 sub armor_name {
 	my ($name) = @_;
-	if ($name =~ /^$wiki_name$/) {
-		return $name;
-	} else {
-		return "[[$name]]";
-	}
+	return ($name =~ /^$wiki_name$/) ? $name : "[[$name]]";
 }
 
 # unarmor_name:
@@ -1004,20 +717,12 @@ sub armor_name {
 #   WikiName -> WikiName
 sub unarmor_name {
 	my ($name) = @_;
-	if ($name =~ /^$bracket_name$/) {
-		return $1;
-	} else {
-		return $name;
-	}
+	return ($name =~ /^$bracket_name$/) ? $1 : $name;
 }
 
 sub is_bracket_name {
 	my ($name) = @_;
-	if ($name =~ /^$bracket_name$/) {
-		return 1;
-	} else {
-		return 0;
-	}
+	return ($name =~ /^$bracket_name$/) ? 1 : 0;
 }
 
 sub dbmname {
@@ -1061,13 +766,13 @@ sub conflict {
 	my $content = join('', <FILE>);
 	&code_convert(\$content, $::kanjicode);
 	close(FILE);
-	&print_header($page);
-	&print_content($content);
 
+	my $body = &text_to_html($content);
 	if (&exist_plugin('edit') == 1) {
-		print &editform($rawmsg, $::form{myConflictChecker}, frozen=>0, conflict=>1);
+		$body .= &editform($rawmsg, $::form{myConflictChecker}, frozen=>0, conflict=>1);
 	}
-	&print_footer($page);
+
+	&skin($page, $body, 0);
 	return 1;
 }
 
@@ -1146,8 +851,7 @@ sub frozen_reject {
 
 sub valid_password {
 	my ($givenpassword) = @_;
-	my ($validpassword_crypt) = &get_info($AdminSpecialPage, $info_AdminPassword);
-	return (crypt($givenpassword, $validpassword_crypt) eq $validpassword_crypt) ? 1 : 0;
+	return (crypt($givenpassword, "AA") eq $::adminpass) ? 1 : 0;
 }
 
 sub is_frozen {
@@ -1155,20 +859,18 @@ sub is_frozen {
 	return (&get_info($page, $info_IsFrozen)) ? 1 : 0;
 }
 
-#
 # require plugin with flag control;
-#
 sub exist_plugin {
 	my ($plugin) = @_;
 
 	if (!$_plugined{$plugin}) {
-		my $path = $::plugin_dir . $plugin . '.inc.pl';
+		my $path = "$::plugin_dir/$plugin" . '.inc.pl';
 		if (-e $path) {
 			require $path;
 			$_plugined{$1} = 1;	# Pyuki
 			return 1;
 		} else {
-			$path = $::plugin_dir . $plugin . '.pl';
+			$path = "$::plugin_dir/$plugin" . '.pl';
 			if (-e $path) {
 				require $path;
 				$_plugined{$1} = 2;	# Yuki
@@ -1238,17 +940,12 @@ sub code_convert {
 
 sub is_exist_page {
 	my ($name) = @_;
-	if ($use_exists) {
-		return exists($::database{$name});
-	} else {
-		return $::database{$name};
-	}
+	return ($use_exists) ? exists($::database{$name}) : $::database{$name};
 }
 
 # Like a PHP.
 sub trim {
-	my $s = shift;
-
+	my ($s) = @_;
 	$s =~ s/^\s*(\S+)\s*$/$1/o; # trim
 	return $s;
 }
@@ -1274,7 +971,7 @@ sub mktime {
 }
 
 sub htmlspecialchars {
-	my $s = shift;
+	my ($s) = @_;
 	$s =~ s|\r\n|\n|g;
 	$s =~ s|\&|&amp;|g;
 	$s =~ s|<|&lt;|g;

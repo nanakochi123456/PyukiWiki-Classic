@@ -8,66 +8,77 @@
 ##############################
 use strict;
 
-# Modifier Info.
-$::modifierlink = 'http://Change me!/';
-$::modifier = 'Nekyo';
-$::modifier_mail = '';
-
-$::modifier_dir_data = '.'; # Your data directory (not URL, but DIRECTORY).
-$::modifierlink_data = '.'; # Your data URL (not DIRECTORY, but URL).
-
-$::icontag = qq(<img id="logo" src="$::modifierlink_data/pyukiwiki.png" width="80" height="80" alt="[PyukiWiki]" title="[PyukiWiki]" />);
-
-# Language
-$::lang = "ja";       # ja:Japanese/cn:Chainese/en:English
+# 言語
+$::lang = "ja";       # ja:日本語/cn:中国語(参考)/en:英語(参考)
 $::kanjicode = "euc"; # euc:EUC-JP/utf8:UTF-8
 
-# Page Info
-$::script = 'wiki.cgi';
-$::FrontPage = 'FrontPage';
-$::RecentChanges = 'RecentChanges';
-$::CreatePage = 'CreatePage';
-$::IndexPage = 'IndexPage';
-$::MenuBar = 'MenuBar';
-$::Header  = 'Header';
-$::Footer  = 'Footer';
+# データ格納ディレクトリ
+$::data_home = '.'; # ページデータ等のディレクトリ
+$::data_dir    = "$::data_home/wiki";		# ページデータ保存用
+$::diff_dir    = "$::data_home/diff";		# 差分保存用
+$::cache_dir   = "$::data_home/cache";		# 一時用
+$::upload_dir  = "$::data_home/attach";		# 添付用
+$::counter_dir = "$::data_home/counter";	# カウンタ用
+$::plugin_dir  = "$::data_home/plugin";		# プラグイン用
+$::skin_dir    = "$::data_home/skin";		# スキン用
+$::image_dir   = "$::data_home/image";		# 画像用
+$::info_dir    = "$::data_home/info";		# 情報用
 
-# RSS
+# スキンファイル
+$::skin_file   = "$::skin_dir/pyukiwiki.skin." . $::lang . ".cgi";
+
+# 修正者情報
+$::modifier = 'anonimous';				# 修正者名
+$::modifierlink = 'http://Change me!/'; # 修正者URI
+$::modifier_mail = '';					# 修正者メールアドレス
+
+# デフォルトページ名
+$::script = 'index.cgi';
+$::FrontPage     = 'FrontPage';
+$::RecentChanges = 'RecentChanges';
+$::CreatePage    = 'CreatePage';
+$::IndexPage     = 'IndexPage';
+$::MenuBar       = 'MenuBar';
+$::Header        = ':Header';
+$::Footer        = ':Footer';
+$::rule_page     = "整形ルール";
+
+$::adminpass = crypt("pass", "AA");
+
+# RSS情報
 $::modifier_rss_title = "PyukiWiki $::version";
-$::modifier_rss_link = 'http://nekyo.hp.infoseek.co.jp/';
+$::modifier_rss_link = 'http://Change me!/';
 $::modifier_rss_description = 'This is PyukiWiki.';
 
-# Display Control
-$::usefacemark = 1;   # 1:Enable :) -> Face Mark./0:Not
-$::use_popup = 0;     # 1:PopUp New Window/0:Not at Link
-$::last_modified = 2; # 0:Non/1:Upper/2:Lower
-$::lastmod_prompt = 'Last-modified:';
-$::enable_convtime = 1; # 1:Disp Convert Time/0:None;
+# 表示設定
+$::usefacemark = 1;   # フェースマークを 1:使う/0:使わない。
+$::use_popup = 0;     # リンク先を 1:ポップアップ/0:ページ切替
+$::last_modified = 2; # 最終更新日 0:非表示/1:上に表示/2:下に表示
+$::lastmod_prompt = 'Last-modified:'; # 最終更新日のプロンプト
 
-$::related_link = 1;
-$::non_list = 'MenuBar|Header|Footer';
 
-# Formats
+$::enable_convtime = 1; # コンバートタイム 1:表示/0:非表示;
+
+# 日時フォーマット
 $::date_format = 'Y-m-d'; # replace &date; to this format.
 $::time_format = 'H:i:s'; # replace &time; to this format,
 
-# add Ver 0.1.1
-# edit
-$::cols = 80;
-$::rows = 25;
-$::file_format = "$::modifier_dir_data/format.txt";
-$::extend_edit = 1;          # 0:Normal / 1:Use Extend Edit
+# ページ編集
+$::cols = 80;       # テキストエリアのカラム数
+$::rows = 25;       # テキストエリアの行数
+$::extend_edit = 1; # 拡張機能(JavaScript) 1:使用/0:未使用
 
-$::plugin_dir = "./plugin/"; # Plugin Directory
+# 添付
+$::file_uploads = 2;       # 添付を 0:使わない/1:使う/2:認証付きで使う
+$::max_filesize = 1000000; # アップロードファイルの最大数
 
-# attach
-$::file_uploads = 2;           # 0:Non/1:Use/2:WithAuth
-$::max_filesize = 1000000;     # Upload Limit File Size
-$::upload_dir = "./attach/";   # Attach Directory
-#$::upload_link = "./attach/"; # use for nifty
-$::use_perlmd5 = 0;            # use no md5 environment
+#
+$::_symbol_anchor = '&dagger;';
+$::maxrecent = 50;
 
-# cache
-$::cache_dir = "./cache/";
+# 一覧・更新一覧に含めないページ名(正規表現で)
+$::non_list = '^\:';
+# 以下は md5('pass') の出力結果です
+#$adminpass = &md5('pass');
 
 1;

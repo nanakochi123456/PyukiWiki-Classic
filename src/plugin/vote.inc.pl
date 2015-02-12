@@ -1,11 +1,13 @@
 #################################################
-# vote ƒvƒ‰ƒOƒCƒ“
+# vote ¥×¥é¥°¥¤¥ó
 # vote.inc.pl
 # Copyright(c) 2004 Nekyo.
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-# Based on vote.inc.php by Mr.arino.
+# 2004/12/06 v0.2 ÉÔ¶ñ¹ç½¤ÀµÈÇ
 # 1TAB=4Spaces
 #
+
+use strict;
 
 sub plugin_vote_action
 {
@@ -19,11 +21,12 @@ sub plugin_vote_action
 	my @args = ();
 	my $cnt = 0;
 	my $write = 0;
+	my $vote_str = '';
 
 	foreach (@lines) {
 		if (/^#vote\(([^\)]*)\)s*$/) {
 			if (++$vote_no != $::form{vote_no}) {
-				$postdata .= $line;
+				$postdata .= $_ . "\n";
 				next;
 			}
 			@args = split(/,/, $1);
@@ -49,7 +52,7 @@ sub plugin_vote_action
 			$postdata .= $vote_str;
 			$write = 1;
 		} else {
-			$postdata .= $line;
+			$postdata .= $_ . "\n";
 		}
 	}
 	if ($write) {
@@ -72,10 +75,11 @@ sub plugin_vote_convert
 	my @args = split(/,/, shift);
 	return '' if (@args == 0);
 
-	my $escapedmypage = &escape($::form{mypage});
+	my $escapedmypage = &htmlspecialchars($::form{mypage});
 	my $conflictchecker = &get_info($::form{mypage}, $::info_ConflictChecker);
+
 	my $body = <<"EOD";
-<form action="$script" method="post">
+<form action="$::script" method="post">
  <table cellspacing="0" cellpadding="2" class="style_table" summary="vote">
   <tr>
    <td align="left" class="vote_label" style="padding-left:1em;padding-right:1em"><strong>$::resource{vote_plugin_choice}</strong>
@@ -91,14 +95,15 @@ EOD
 
 	my $tdcnt = 0;
 	my $cnt = 0;
-	my $link = '';
-	my $cls = '';
+	my ($link, $e_arg, $cls);
 	foreach (@args) {
 		$cnt = 0;
 
 		if (/^(.+)\[(\d+)\]$/) {
 			$link = $1;
 			$cnt = $2;
+		} else {
+			$link = $_;
 		}
 		$e_arg = &encode($link);
 		$cls = ($tdcnt++ % 2)  ? 'vote_td1' : 'vote_td2';

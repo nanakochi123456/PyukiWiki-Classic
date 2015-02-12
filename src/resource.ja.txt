@@ -87,5 +87,7 @@ attach_msg_uploaded=アップロードしました。
 attach_err_password=パスワードが一致しません。
 attach_err_exceed=ファイルサイズが大きすぎます。
 attach_err_notfound=ファイルは見つかりません。
-
 btn_upload=アップロード
+popular_plugin_frame=<h5>人気の%d件</h5><div>%s</div>
+popular_plugin_today_frame=<h5>今日の%d件</h5><div>%s</div>
+continue_msg=つづきを読む

@@ -1,18 +1,20 @@
+##
+# PyukiWiki Plugin
+# lookup.inc.pl v0.2 Nekyo
 #
-# Based on lookup.inc.php,v 1.9 arino Exp $
 use strict;
 
 sub plugin_lookup_convert {
 	my @args = split(/,/, shift);
 #	if (@args < 2) { return ''; }
-	my $iwn = &escape(&trim($args[0]));
-	my $btn = &escape(&trim($args[1]));
+	my $iwn = &htmlspecialchars(&trim($args[0]));
+	my $btn = &htmlspecialchars(&trim($args[1]));
 
 	my $default = '';
 	if (@args > 2) {
-		$default = &escape(trim($args[2]));
+		$default = &htmlspecialchars(trim($args[2]));
 	}
-	my $s_page = &escape($::form{mypage});
+	my $s_page = &htmlspecialchars($::form{mypage});
 	my $ret = <<"EOD";
 <form action="$::script" method="post">
  <div>
@@ -28,13 +30,21 @@ EOD
 }
 
 sub plugin_lookup_action {
-	my $remoteurl = $::interwiki{$::form{inter}};
-	my $text = &decode($::form{page});
-	#print "Content-type: text/html\n\n";
+	my $text = &::decode($::form{page});
 
-	if ($remoteurl) {
-		$remoteurl =~ s/\b(utf8|euc|sjis|ykwk|asis)\(\$1\)/&interwiki_convert($1, $text)/e;
-		print ("Location: $remoteurl\n\n");
+	# pyukiwiki
+	my ($code, $uri) = %{$::interwiki2{$::form{inter}}};
+	if ($uri) {
+		$uri =~ s/\$1/&interwiki_convert($code, $text)/e;
+	} else {
+		# yukiwiki
+		$uri = $::interwiki{$::form{inter}};
+		if ($uri) {
+			$uri =~ s/\b(utf8|euc|sjis|ykwk|yw|asis)\(\$1\)/&interwiki_convert($1, $text)/e;
+		}
+	}
+	if ($uri) {
+		print("Location: $uri\n\n");
 		exit;
 	}
 	return "";

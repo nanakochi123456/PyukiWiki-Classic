@@ -1,5 +1,5 @@
 ############################################################
-# rss10 ƒvƒ‰ƒOƒCƒ“
+# rss10 rËÓ(rnrbr2
 # rss10.inc.pl
 # Copyright(c) 2004 Nekyo.
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
@@ -22,9 +22,9 @@ sub plugin_rss10_action {
 		last if ($count >= 15);
 		/^\- \d\d\d\d\-\d\d\-\d\d \(...\) \d\d:\d\d:\d\d (\S+)/;    # date format.
 		my $title = &unarmor_name($1);
-		my $escaped_title = &escape($title);
+		my $escaped_title = &htmlspecialchars($title);
 		my $link = $modifier_rss_link . '?' . &encode($title);
-		my $description = $escaped_title . &escape(&get_subjectline($title));
+		my $description = $escaped_title . &htmlspecialchars(&get_subjectline($title));
 		$rss->add_item(
 			title => $escaped_title,
 			link  => $link,

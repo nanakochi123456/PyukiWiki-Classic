@@ -22,7 +22,7 @@ sub plugin_showrss_convert
 
 	my $expire = $usecache * 3600;
 	my $code = 'utf8';
-	my $cachefile = $::cache_dir . &dbmname($rssuri) . ".tmp";
+	my $cachefile = $::cache_dir . "/" . &dbmname($rssuri) . ".tmp";
 	my $stream;
 	my $body = "";
 

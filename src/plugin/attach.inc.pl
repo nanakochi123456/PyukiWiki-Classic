@@ -7,11 +7,7 @@
 
 #use strict;
 use CGI qw(:standard);
-if ($::use_perlmd5 == 1) {
-	eval { use Digest::perl::MD5 qw(md5_hex); };
-} else {
-	eval { use Digest::MD5 qw(md5_hex); };
-}
+use Digest::MD5 qw(md5_hex);
 
 #--------------------------------------------------------
 my %mime = (
@@ -41,8 +37,8 @@ my %mime = (
 # file icon image
 if (!$::file_icon) {
 	$::file_icon = '<img src="'
-		. $::modifierlink_data
-		. '/image/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
+		. $::image_dir
+		. '/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
 }
 
 #-------- convert
@@ -298,7 +294,7 @@ sub new
 	$this->{page} = shift;	# page
 	$this->{file} = shift;	# file
 	$this->{age}  = shift;	# age;
-	$this->{basename} = $::upload_dir
+	$this->{basename} = "$::upload_dir/"
 		. &::dbmname($this->{page}) . '_' . &::dbmname($this->{file});
 	$this->{filename} = $this->{basename} . ($this->{age} ? '.' . $this->{age} : '');
 	$this->{exist} = (-e $this->{filename}) ? 1 : 0;
@@ -548,8 +544,8 @@ sub new {
 	$this->{page} = shift;
 	my $age = shift;
 
-	opendir(DIR, $::upload_dir)
-		or die('directory '. $::upload_dir . ' is not exist or not readable.');
+	opendir(DIR, "$::upload_dir/")
+		or die('directory ' . $::upload_dir . ' is not exist or not readable.');
 	my @file = readdir(DIR);
 	closedir(DIR);
 

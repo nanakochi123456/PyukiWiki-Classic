@@ -62,6 +62,7 @@ sub FIRSTKEY {
         $name =~ s/\.txt$//;
         $name =~ s/[0-9A-F][0-9A-F]/pack("C", hex($&))/eg;
     }
+	closedir(DIR);
     return shift @{$self->{keys}};
 }
 

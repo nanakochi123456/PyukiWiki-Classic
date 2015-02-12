@@ -36,7 +36,7 @@ sub plugin_recent_action {
 	my $atime;
 	foreach my $page (sort keys %::database) {
 		next if ($page eq $::RecentChanges);	# RecentChanges を除外
-		$atime = (stat($::dataname . "/" . &dbmname($page) . ".txt"))[9];	# statで最終更新日付を取得
+		$atime = (stat($::data_dir . "/" . &dbmname($page) . ".txt"))[9];	# statで最終更新日付を取得
 		$rclist{$page} = $atime;
 	}
 	my @updates;
@@ -47,11 +47,6 @@ sub plugin_recent_action {
 	}
 	splice(@updates, $::maxrecent + 1);
 	$::database{$::RecentChanges} = join("\n", @updates);
-	if ($file_touch) {
-		open(FILE, "> $file_touch");
-		print FILE localtime() . "\n";
-		close(FILE);
-	}
 	return;
 }
 

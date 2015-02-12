@@ -5,6 +5,8 @@
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # Based on aname.inc.php by Mr.arino.
 
+use strict;
+
 sub plugin_aname_inline
 {
 	my ($args) = @_;

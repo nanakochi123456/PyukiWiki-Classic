@@ -75,7 +75,7 @@ sub plugin_comment_convert {
 		$comment_numbers{$::form{mypage}} = 0;
 	}
 	$comment_no = ++$comment_numbers{$::form{mypage}};
-	my $escapedmypage = &escape($::form{mypage});
+	my $escapedmypage = &htmlspecialchars($::form{mypage});
 	my $conflictchecker = &get_info($::form{mypage}, $::info_ConflictChecker);
 	return <<"EOD";
 <form action="$::script" method="post">
