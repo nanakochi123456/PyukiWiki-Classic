@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #!/usr/local/bin/perl --
 #######################################
-# index.cgi - This is PyukiWiki, yet another Wiki clone.
+# index.cgi - This is PyukiWiki.
 #
 # PyukiWiki Classic Version see also $::version
 # Copyright (C) 2004-2006 by Nekyo.
@@ -17,20 +17,20 @@
 # modify it under the same terms as Perl itself.
 # Return:LF Code=EUC-JP 1TAB=4Spaces
 #######################################
-$::version = '0.1.6';
+$::version = '0.1.7';
 
-# Libraries.
 use strict;
 
-##############################
-# You MUST modify following initial file.
+##
+# $::ini_file を先に指定しておくと、それが評価される。
 $::ini_file = 'pyukiwiki.ini.cgi' if ($::ini_file eq '');
 
+##
+# ライブラリ
 # if you can use lib is ../lib then swap this comment
 BEGIN {
 	push @INC, 'lib';
 }
-
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser);
 use Yuki::DiffText qw(difftext);
@@ -38,26 +38,28 @@ use Yuki::YukiWikiDB;
 use Socket;
 use FileHandle;
 
-# If You can use Jcode.pm then Swap the comment.
 use Jcode;
 use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
+
+##
+# 設定ファイル読込み
 require $::ini_file;
+
+##
+# スキンファイル読込み
 $::skin_file = 'pyukiwiki.skin.cgi' if ($::skin_file eq '');
 require "$::skin_dir/$::skin_file";
 
 ##############################
-#
-# You MAY modify following variables.
-#
+# 初期設定
 my $modifier_dbtype = 'Yuki::YukiWikiDB';
 my $modifier_sendmail = '';
 #my $modifier_sendmail = '/usr/sbin/sendmail -t -n';
-##############################
-# You MAY modify following variables.
 
+# 言語設定
 if ($::lang eq 'ja') {
 	if ($::kanjicode eq 'euc') {
 		$::charset = 'EUC-JP';
@@ -73,17 +75,14 @@ if ($::lang eq 'ja') {
 ##############################
 my $editchar = '?';
 my $subject_delimiter = ' - ';
-my $use_autoimg = 1; # automatically convert image URL into <img> tag.
 my $use_exists = 0; # If you can use 'exists' method for your DB.
-#my $use_FixedFrontPage = 0;
 ##############################
 my $interwikiName = 'InterWikiName';
 my $AdminChangePassword = 'AdminChangePassword';
 my $CompletedSuccessfully = 'CompletedSuccessfully';
 my $ErrorPage = 'ErrorPage';
 
-##############################
-#my $wiki_name = '\b([A-Z][a-z]+([A-Z][a-z]+)+)\b';
+# Wikiの設定
 my $wiki_name = '\b([A-Z][a-z]+[A-Z][a-z]+)\b';
 my $bracket_name = '\[\[([^\]]+?)\]\]';
 my $embedded_name = '(\#\S+?)';
@@ -94,63 +93,69 @@ my $interwiki_name2 = '([^:]+):([^:#].*?)(#.*)?';
 #             ^$ascii     +@($domain              |$ip)
 my $ismail = '[\x01-\x7F]+\@(([-a-z0-9]+\.)*[a-z]+|\[\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\])';
 
-##############################
-#my $embed_plugin = '^#([^(]+)(\(([^)]+)\))?$';
+# プラグイン設定
 my $embed_plugin = '^\#([^\(]+)(\((.*)\))?';
-
 my $embed_inline = '(&amp;[^;&]+;|&amp;[^)]+\))';
-##############################
+
+# 変数設定
 $::info_ConflictChecker = 'ConflictChecker';
 my $info_LastModified = 'LastModified';
 my $info_IsFrozen = 'IsFrozen';
 my $info_AdminPassword = 'AdminPassword';
-##############################
-my %fixedpage = (
+my %fixedpage = (	# 固定ページ
 	$ErrorPage => 1,
 	$::RecentChanges => 1,
 	$AdminChangePassword => 1,
 	$CompletedSuccessfully => 1,
 );
-my %fixedplugin = (
+my %fixedplugin = (	# 固定
 	'newpage' => 1,
 	'search' => 1,
 	'list' => 1,
 );
-my %infobase;
-%::diffbase;
-%::interwiki;
-##############################
-my %command_do = (
+my %command_do = (	# コマンド別名
 	read => \&do_read,
 	write => \&do_write,
 	createresult => \&do_createresult,
 );
+$::counter_ext = '.count';	# カウンタファイル拡張子
 
-$::counter_ext = '.count';
-my $lastmod;	# v0.0.9
-my %_plugined;	# 1:Pyuki/2:Yuki/0:None
+# 初期化
+$::upload_link = $::upload_dir if (!$::upload_link);
+$::conv_start = (times)[0] if ($::enable_convtime != 0);	# コンバートタイム初期化
+@::notes = ();												# 注釈初期化
 
-if (!$::upload_link) {
-	$::upload_link = $::upload_dir;
-}
-
-##############################
-my $_conv_start;
-$_conv_start = (times)[0] if ($::enable_convtime != 0);
-
-@::notes = ();
+##
+# 変数定義
+my %infobase;
+%::diffbase;
+%::interwiki;
+my $lastmod;	# 最終更新日
+my %_plugined;	# プラグイン種別 1:Pyuki/2:Yuki/0:None
 
 &main;
 exit(0);
-##############################
 
+##
+# メイン処理
 sub main {
 	%::resource = &read_resource("$::res_dir/resource.$::lang.txt");
-
 	# &check_modifiers;
 	&open_db;
 	&init_form;
 	&init_InterWikiName;
+
+	# 参照拒否アドレス ini ファイルに $disableaddr で指定。区切りは改行
+	foreach(split(/\n/, $::disableaddr)) {
+		s/\./\\\./g;
+		s/\//\\\//g;
+		if ($::ENV{'REMOTE_ADDR'} =~ /$_/i) {
+			&skinex($::form{mypage}, &message($::resource{auth_readfobidden}), 0);
+			&close_db;
+			return;
+		}
+	}
+
 	if ($command_do{$::form{cmd}}) {
 		&{$command_do{$::form{cmd}}};
 	} else {
@@ -232,13 +237,37 @@ sub do_write {
 	}
 	if ($FrozenWrite ne 'FrozenWrite') {
 		return if (&frozen_reject());
+	} else {
+		# 凍結の属性を引き継ぐ
+		$::form{myfrozen} = &get_info($::form{mypage}, $info_IsFrozen) ? 1 : 0;
 	}
 	return if (&conflict($::form{mypage}, $::form{mymsg}));
+
+	# 登録拒否文字列 ini ファイルに $disablewords で指定。区切りは改行
+	foreach(split(/\n/, $::disablewords)) {
+		s/\./\\\./g;
+		s/\//\\\//g;
+		if ($::form{mymsg} =~ /$_/i) {
+			if ($::deny_log) {
+				my $fp;
+				open $fp, ">>$::deny_log";
+				print $fp "<<" . date("Y-m-d H:i:s") . ">>\n";
+				print $fp "HTTP_USER_AGENT:" . $::ENV{'HTTP_USER_AGENT'} . "\n";
+				print $fp "HTTP_REFERER:"    . $::ENV{'HTTP_REFERER'} . "\n"; # 呼び出し元URL
+				print $fp "REMOTE_ADDR:"     . $::ENV{'REMOTE_ADDR'} . "\n";  # リモート
+				print $fp "REMOTE_HOST:"     . $::ENV{'REMOTE_HOST'} . "\n";
+				print $fp "REMOTE_IDENT:"    . $::ENV{'REMOTE_IDENT'} . "\n";
+				close $fp;
+			}
+			&skinex($::form{mypage}, &message($::resource{auth_writefobidden}), 0);
+			return 0;
+		}
+	}
 
 	$::form{mymsg} =~ s/&date;/&date($::date_format)/gex;
 	$::form{mymsg} =~ s/&time;/&date($::time_format)/gex;
 
-	# Making diff
+	# 差分作成
 	if (1) {
 		&open_diff;
 		my @msg1 = split(/\n/, $::database{$::form{mypage}});
@@ -267,12 +296,16 @@ sub do_write {
 	return 0;
 }
 
+##
+# エラー画面表示
 sub print_error {
 	my ($msg) = @_;
 	&skinex($ErrorPage, qq(<p><strong class="error">$msg</strong></p>), 0);
 	exit(0);
 }
 
+##
+# 特殊文字を元に戻す。
 sub unescape {
 	my $s = shift;
 	# $s =~ s|\n|\r\n|g;
@@ -283,11 +316,15 @@ sub unescape {
 	return $s;
 }
 
+##
+# コンテンツ表示
 sub print_content {
 	my ($rawcontent) = @_;
 	print &text_to_html($rawcontent);
 }
 
+##
+# テキストHTML変換
 sub text_to_html {
 	my ($txt) = @_;
 	my (@txt) = split(/\r?\n/, $txt);
@@ -329,7 +366,7 @@ sub text_to_html {
 				$verbatim = { func => \&escape, done => '---)', class => 'verbatim-hard' };
 			}
 			&back_push('pre', 1, \@saved, \@result, " class='$verbatim->{class}'");
-		} elsif (/^{{{/) {	# OpenWiki like. Thanks wadldw.
+		} elsif (/^{{{/) {	# OpenWiki like.
 			$verbatim = { func => \&inline, done => '}}}', class => 'verbatim-soft' };
 			&back_push('pre', 1, \@saved, \@result, " class='$verbatim->{class}'");
 		} elsif (/^----/) {
@@ -370,24 +407,72 @@ sub text_to_html {
 			#######
 			# This part is taken from Mr. Ohzaki's Perl Memo and Makio Tsukamoto's WalWiki.
 			# XXXXX
-			my $delm = "\\$1";
+			my $delm = "\\$1";	# デリミタは | か ,
 			my $tmp = ($1 eq ',') ? "$2$1" : "$2";
+			# デリミタで分割して配列にセット
 			my @value = map {/^"(.*)"$/ ? scalar($_ = $2, s/""/"/g, $_) : $_}
 				($tmp =~ /("[^"]*(?:""[^"]*)*"|[^$delm]*)$delm/g);
 			my @align = map {(s/^\s+//) ? ((s/\s+$//) ? ' align="center"' : ' align="right"') : ''} @value;
 			my @colspan = map {($_ eq '==') ? 0 : 1} @value;
+			my $pukicolspan = 1;
+			my $thflag = 'td';
+			my $value_style = '';
+			my @col_style;
+
 			for (my $i = 0; $i < @value; $i++) {
 				if ($colspan[$i]) {
-					while ($i + $colspan[$i] < @value and $value[$i + $colspan[$i]] eq '==') {
+					if ($value[$i] eq '~') {		# 値が ~ だけなら下と連結
+						$value[$i] = '';
+					} elsif ($value[$i] =~ /^\~/) {	# 先頭が ~ なら th
+						$value[$i] =~ s/^\~//g;
+						$thflag = 'th';
+					} elsif ($value[$i] eq '>') {	# 値が > だけなら右と連結
+						$value[$i] = '';
+						$pukicolspan++;
+						next;
+					}
+					while ($i + $colspan[$i] < @value and  $value[$i + $colspan[$i]] eq '==') {
 						$colspan[$i]++;
 					}
+					if ($pukicolspan > 1) {
+						$colspan[$i] = $pukicolspan;
+						$pukicolspan = 1;
+					}
 					$colspan[$i] = ($colspan[$i] > 1) ? sprintf(' colspan="%d"', $colspan[$i]) : '';
-					$value[$i] = sprintf('<td%s%s class="style_td">%s</td>', $align[$i], $colspan[$i], &inline($value[$i]));
+					$value[$i] =~ s!LEFT\:!\ftext-align:left;\t!g;
+					$value[$i] =~ s!CENTER\:!\ftext-align:center;\t!g;
+					$value[$i] =~ s!RIGHT\:!\ftext-align:right;\t!g;
+					$value[$i] =~ s!BGCOLOR\((.*?)\):(.*)!\fbackground-color:$1;\t$2!g;
+					$value[$i] =~ s!COLOR\((.*?)\):(.*)!\fcolor:$1;\t$2!g;
+					$value[$i] =~ s!SIZE\((.*?)\):(.*)!\ffont-size:$1px;\t$2!g;
+
+					if ($value[$i]=~/\f/) {
+						$value_style = $value[$i];
+						$value_style =~ s!\t\f!!g;
+						$value_style =~ s!\t(.*)$!!g;
+						$value_style =~ s!\f!!g;
+						$value[$i] =~ s/\f(.*?)\t//g;
+					}
+					if ($tmp =~ /(\,|\|)c$/) {
+						$col_style[$i] = $value_style;
+					} else {
+						$value[$i] = sprintf('<%s%s%s class="style_%s" style="%s%s">%s</%s>',
+							$thflag, $align[$i], $colspan[$i], $thflag, $col_style[$i], $value_style,
+							&inline($value[$i]), $thflag);
+						$value_style = '';
+					}
 				} else {
 					$value[$i] = '';
 				}
 			}
-			push(@result, join('', '<tr>', @value, '</tr>'));
+			# 中身は result にプッシュする。
+			if ($tmp =~ /(\,|\|)h$/) {
+				push(@result, join('', '<thead><tr>',@value,'</tr></thead>'));
+			} elsif ($tmp =~ /(\,|\|)f$/) {
+				push(@result, join('', '<tfoot><tr>',@value,'</tr></tfoot>'));
+			} elsif ($tmp !~ /(\,|\|)c$/) {
+				push(@result, join('', '<tr>', @value, '</tr>'));
+			}
 			# XXXXX
 			#######
 		} elsif (/^====/) {
@@ -419,6 +504,8 @@ sub back_push {
 	}
 }
 
+##
+# インライン展開
 sub inline {
 	my ($line) = @_;
 	$line = &htmlspecialchars($line);
@@ -454,16 +541,8 @@ sub inline {
 				($ismail)
 			)!&make_link($1)!gex;
 	}
-
-	if ($::usefacemark == 1) {
-		$line =~ s!\s(\:\)|\(\^\^\))! <img src="$::image_dir/face/smile.png" alt="$1" />!g;
-		$line =~ s!\s(\:D|\(\^-\^\))! <img src="$::image_dir/face/bigsmile.png" alt="$1" />!g;
-		$line =~ s!\s(\:p|\:d)! <img src="$::image_dir/face/huh.png" alt="$1" />!g;
-		$line =~ s!\s(XD|X\(|\(\.\.;)! <img src="$::image_dir/face/oh.png" alt="$1" />!g;
-		$line =~ s!\s(;\)|\(\^_-\))! <img src="$::image_dir/face/wink.png" alt="$1" />!g;
-		$line =~ s!\s(;\(|\:\(|\(--;\))! <img src="$::image_dir/face/sad.png" alt="$1" />!g;
-		$line =~ s!&(heart);!<img src="$::image_dir/face/heart.png" alt="$1" />!g;
-		$line =~ s!\s\(\^\^;\)?! <img src="$::image_dir/face/worried.png" alt="$1" />!g;
+	if (&exist_plugin('facemark') == 1) {
+		$line = &plugin_facemark_convert($line);
 	}
 	return $line;
 }
@@ -479,16 +558,19 @@ sub note {
 		. @::notes . "</a>";
 }
 
+##
+# リンク作成
 sub make_link {
 	my $chunk = shift;
+	my $res;
+	my $target = $::use_popup != 0 ? qq( target="_blank") : '';
+
 	if ($chunk =~ /^(https?|ftp):/) {
-		if ($use_autoimg and $chunk =~ /\.(gif|png|jpe?g)$/) {
-			return qq(<a href="$chunk"><img src="$chunk"></a>);
-		} else {
-			# v0.0.9
-			return qq(<a href="$chunk" target="_blank" >$chunk</a>) if ($::use_popup != 0);
-			return qq(<a href="$chunk">$chunk</a>);
+		if (&exist_plugin('img') == 1) {
+			$res = &plugin_img_convert("$chunk,module");
+			return $res if ($res ne '');
 		}
+		return qq(<a href="$chunk"$target>$chunk</a>);
 	} elsif ($chunk =~ /^$interwiki_definition2$/) {
 		return qq(<span class="InterWiki"><a href="$1">$2</a> $3</span>);
 	} elsif ($chunk =~ /$embed_inline/) {
@@ -500,6 +582,9 @@ sub make_link {
 		my $escapedchunk = &htmlspecialchars($chunk);
 		if ($chunk =~ /(.+?)>(.+)/ or $chunk =~ /(.+?):(.+)/) {	# v0.1.4
 			$escapedchunk = &htmlspecialchars($1);
+			if ($escapedchunk =~ /\.(gif|png|jpe?g)$/) {
+				$escapedchunk = "<img src=\"$escapedchunk\">";
+			}
 			$chunk = $2;
 			if ($2 =~ /$ismail/) {
 				$escapedchunk = $chunk   if ($escapedchunk =~ /^mailto/);
@@ -512,24 +597,18 @@ sub make_link {
 			return qq(<a href="mailto:$chunk">$chunk</a>);
 		}
 		if ($chunk =~ /^(https?|ftp):/) {
-			if ($use_autoimg and $escapedchunk =~ /\.(gif|png|jpe?g)$/) {
-				return qq(<a href="$chunk"><img src="$escapedchunk"></a>);
-			} else {
-				# v0.0.9
-				return qq(<a href="$chunk" target="_blank" >$escapedchunk</a>)
-					if ($::use_popup != 0);
-				return qq(<a href="$chunk">$escapedchunk</a>);
+			if (&exist_plugin('img') == 1) {
+				$res = &plugin_img_convert("$chunk,module");
+				return $res if ($res ne '');
 			}
+			return qq(<a href="$chunk">$escapedchunk</a>);
 		} elsif ($chunk =~ /^$interwiki_name2$/) {
 			my ($intername, $keyword, $anchor) = ($1, $2, $3);
 			if (exists $::interwiki2{$intername}) {
 				my ($code, $url) = %{$::interwiki2{$intername}};
 				$url =~ s/\$1/&interwiki_convert($code, $keyword)/e;
 				$url = &htmlspecialchars($url.$anchor);
-				# v0.0.9
-				return qq(<a href="$url" target="_blank">$escapedchunk</a>)
-					if ($::use_popup != 0);
-				return qq(<a href="$url">$escapedchunk</a>);
+				return qq(<a href="$url"$target>$escapedchunk</a>);
 			} else {
 				return $escapedchunk;
 			}
@@ -636,6 +715,8 @@ sub init_form {
 	$::form{myname} = &code_convert(\$::form{myname}, $::kanjicode);
 }
 
+##
+# 最終更新日更新
 sub update_recent_changes {
 	my $update = "- @{[&get_now]} @{[&armor_name($::form{mypage})]} @{[&get_subjectline($::form{mypage})]}";
 	my @oldupdates = split(/\r?\n/, $::database{$::RecentChanges});
@@ -747,11 +828,13 @@ sub is_editable {
 		return 0;
 	} elsif ($fixedplugin{$::form{cmd}}) {
 		return 0;
-	} elsif ($page =~ /\s/) {
+	} elsif ($page =~ /(\n|\r|\f|\t)/) {
+		return 0;
+	} elsif ($page =~/^\s/) {
+		return 0;
+	} elsif ($page =~/\s$/) {
 		return 0;
 	} elsif ($page =~ /^\#/) {
-		return 0;
-	} elsif ($page =~ /^$interwiki_name$/) {
 		return 0;
 	} elsif ($page =~ /(^|\/)\.{1,2}(\/|$)/) { # ./ ../ is ng
 		return 0;
@@ -794,8 +877,7 @@ sub dbmname {
 ##
 # リソースを読込む汎用ルーチン
 sub read_resource {
-	my ($file) = @_;
-	my %buf = ();
+	my ($file, %buf) = @_;
 	open(FILE, $file) or &print_error("(resource:$file)");
 	while (<FILE>) {
 		s/\r\n/\n/;
@@ -808,6 +890,8 @@ sub read_resource {
 	return %buf;
 }
 
+##
+# 衝突
 sub conflict {
 	my ($page, $rawmsg) = @_;
 	if ($::form{myConflictChecker} eq &get_info($page, $::info_ConflictChecker)) {
@@ -1005,6 +1089,42 @@ sub encode {
 	return &rawurlencode(@_);
 }
 
+##
+# Pluginに対応するJavaScript読込み文字列を作成する。
+sub jscss_include {
+	my ($res, $rel, $js, $css, $onload, $onunload);
+	foreach (keys %_plugined) {
+		$js = $_ . '.js';
+		if (-e "$::js_dir/$js") {
+			$res .= '<script type="text/javascript" src="' . $::js_url . '/' . $js . '"></script>' . "\n";
+		}
+		if ($::extend_js{$_}{'js'} ne '') {
+			$res .= '<script type="text/javascript" src="' . $::extend_js{$_}{'js'} . '"';
+			if ($::extend_js{$_}{'charset'} ne '') {
+				$res .= ' charset="' . $::extend_js{$_}{'charset'} . '"';
+			}
+			$res .= '></script>' . "\n";
+		}
+		if ($::extend_js{$_}{'onload'} ne '') {
+			$onload .= $::extend_js{$_}{'onload'};
+		}
+		if ($::extend_js{$_}{'onunload'} ne '') {
+			$onunload .= $::extend_js{$_}{'onunload'};
+		}
+		$css = $_ . '.css';
+		if (-e "$::css_dir/$css") {
+			$rel .= '<link rel="stylesheet" href="' . $::css_url . '/' . $css
+				. '" type="text/css" media="screen" charset="Shift_JIS" />' . "\n";
+		}
+	}
+	if ($onload ne '') {
+		$::bodyattr .= ' onload="' . $onload . '"';
+	}
+	if ($onunload ne '') {
+		$::bodyattr .= ' onunload="' . $onunload . '"';
+	}
+	return $res . $rel;
+}
 
 ##############################
 # PukiWiki風関数
@@ -1018,13 +1138,21 @@ sub exist_plugin {
 		my $path = "$::plugin_dir/$plugin" . '.inc.pl';
 		if (-e $path) {
 			require $path;
-			$_plugined{$1} = 1;	# Pyuki
+			$_plugined{$plugin} = 1;	# Pyuki
+			$path = "$::res_dir/$plugin.$::lang.txt";
+			if (-r $path) {
+				%::resource = &read_resource($path, %::resource);
+			}
 			return 1;
 		} else {
 			$path = "$::plugin_dir/$plugin" . '.pl';
 			if (-e $path) {
 				require $path;
-				$_plugined{$1} = 2;	# Yuki
+				$_plugined{$plugin} = 2;	# Yuki
+				$path = "$::res_dir/$plugin.$::lang.txt";
+				if (-r $path) {
+					%::resource = &read_resource($path, %::resource);
+				}
 				return 2;
 			}
 		}
@@ -1048,6 +1176,11 @@ sub func_get_args {
 # PHP互換関数
 
 ##
+# fopen hosts 対応用変数
+my $hosts_exist = 0;
+my %hosts;
+
+##
 # ファイルまたはURLをオープンする
 sub fopen {
 	my ($fname, $fmode) = @_;
@@ -1067,7 +1200,33 @@ sub fopen {
 		}
 		my ($sockaddr, $ip);
 		$fp = new FileHandle;
-		if ($host =~ /^(\d+).(\d+).(\d+).(\d+)$/) {
+
+		# hosts 機能(infoseek が DNS展開出来ないため hosts を利用する。)
+		if ($hosts_exist == 0) {	# hosts を読んでいない。
+			# hosts は リソースディレクトリの hosts.cgi 固定。
+			my $hosts_path = $::res_dir . '/hosts.cgi';
+			$hosts_exist = 2;	# ファイル・データが存在しなかった。
+			if (-f $hosts_path) {
+				if (open(FILE, $hosts_path)) {
+					while (<FILE>) {
+						s/\r\n/\n/;
+						chomp;
+						next if /^#/; # 先頭 # ならコメント
+						# IP URL alias は無視
+						if (/(\d+\.\d+\.\d+\.\d+)\s+([^\s]+)/) {
+							$hosts{$2} = $1;
+							$hosts_exist = 1;	# データが存在した。
+						}
+					}
+					close(FILE);
+				}
+			}
+		}
+		if (($hosts_exist == 1) && ($hosts{$host})) { # 該当があれば
+			$host = $hosts{$host}; # hosts 優先で置き換え
+		}
+
+		if ($host =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/) {
 			$ip = pack('C4', split(/\./, $host));
 		} else {
 			#HOST名をIPに直す
@@ -1082,7 +1241,6 @@ sub fopen {
 		return $fp;
 	} else {
 		$fmode = lc($fmode);
-
 		if ($fmode eq 'w') {
 			$_fname = ">$fname";
 		} elsif ($fmode eq 'w+') {
@@ -1127,7 +1285,7 @@ sub mktime {
 	for ($i = 1; $i < $month; $i++) {
 		$days += ($i == 2 && $year % 4 == 0 && ($year % 400 == 0 || $year % 100 != 0)) ? 29 : $samurai[$i - 1];
 	}
-	$days += $day;
+	$days += $day - 1;
 	return (((($days * 24) + $hour) * 60) + $min) * 60 + $sec;
 }
 
