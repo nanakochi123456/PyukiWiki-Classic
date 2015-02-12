@@ -18,7 +18,6 @@ $::modifierlink_data = '.'; # Your data URL (not DIRECTORY, but URL).
 
 $::icontag = qq(<img id="logo" src="$::modifierlink_data/pyukiwiki.png" width="80" height="80" alt="[PyukiWiki]" title="[PyukiWiki]" />);
 
-
 # Language
 $::lang = "ja";       # ja:Japanese/cn:Chainese/en:English
 $::kanjicode = "euc"; # euc:EUC-JP/utf8:UTF-8
@@ -30,6 +29,8 @@ $::RecentChanges = 'RecentChanges';
 $::CreatePage = 'CreatePage';
 $::IndexPage = 'IndexPage';
 $::MenuBar = 'MenuBar';
+$::Header  = 'Header';
+$::Footer  = 'Footer';
 
 # RSS
 $::modifier_rss_title = "PyukiWiki $::version";
@@ -42,6 +43,9 @@ $::use_popup = 0;     # 1:PopUp New Window/0:Not at Link
 $::last_modified = 2; # 0:Non/1:Upper/2:Lower
 $::lastmod_prompt = 'Last-modified:';
 $::enable_convtime = 1; # 1:Disp Convert Time/0:None;
+
+$::related_link = 1;
+$::non_list = 'MenuBar|Header|Footer';
 
 # Formats
 $::date_format = 'Y-m-d'; # replace &date; to this format.
@@ -57,8 +61,13 @@ $::extend_edit = 1;          # 0:Normal / 1:Use Extend Edit
 $::plugin_dir = "./plugin/"; # Plugin Directory
 
 # attach
-$::file_uploads = 2;         # 0:Non/1:Use/2:WithAuth
-$::max_filesize = 1000000;   # Upload Limit File Size
-$::upload_dir = "./attach/"; # Attach Directory
+$::file_uploads = 2;           # 0:Non/1:Use/2:WithAuth
+$::max_filesize = 1000000;     # Upload Limit File Size
+$::upload_dir = "./attach/";   # Attach Directory
+#$::upload_link = "./attach/"; # use for nifty
+$::use_perlmd5 = 0;            # use no md5 environment
+
+# cache
+$::cache_dir = "./cache/";
 
 1;

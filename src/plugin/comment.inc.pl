@@ -2,6 +2,7 @@
 # comment plugin
 # comment.inc.pl
 # Copyright(c) 2004 Nekyo.
+# v 0.0.2 - 2004/10/28 Tnx:Birgus-Latro
 # v 0.0.1 - ProtoType
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # Based on comment.inc.php by Mr.arino.
@@ -51,6 +52,7 @@ sub plugin_comment_action {
 }
 
 my $comment_no = 0;
+my %comment_numbers = {}; # Tnx:Birgus-Latro
 
 sub plugin_comment_convert {
 	my @argv = split(/,/, shift);
@@ -69,7 +71,10 @@ sub plugin_comment_convert {
 			$nametags = '';
 		}
 	}
-	$comment_no++;
+	if (!exists $comment_numbers{$::form{mypage}}) { # Tnx:Birgus-Latro
+		$comment_numbers{$::form{mypage}} = 0;
+	}
+	$comment_no = ++$comment_numbers{$::form{mypage}};
 	my $escapedmypage = &escape($::form{mypage});
 	my $conflictchecker = &get_info($::form{mypage}, $::info_ConflictChecker);
 	return <<"EOD";

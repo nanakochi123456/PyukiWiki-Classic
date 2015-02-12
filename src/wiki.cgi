@@ -16,7 +16,10 @@
 ##############################
 # Libraries.
 use strict;
-use lib qw(.);
+# if you can use lib is ../lib then swap this comment
+use lib qw(. lib);
+# use lib qw(. ../lib);
+
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser);
 use Yuki::RSS;
@@ -24,16 +27,16 @@ use Yuki::DiffText qw(difftext);
 use Yuki::YukiWikiDB;
 
 # If You can use Jcode.pm then Swap the comment.
-#my $use_Jcodepm = 1;
-#use Jcode;
-my $use_Jcodepm = 0;
-require 'jcode.pl';
+my $use_Jcodepm = 1;
+use Jcode;
+#my $use_Jcodepm = 0;
+#require 'jcode.pl';
 
 use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
-$::version = '0.1.1';
+$::version = '0.1.2';
 ##############################
 # You MUST modify following initial file.
 
@@ -45,7 +48,7 @@ require 'pyukiwiki.ini.cgi';
 #
 my $modifier_dbtype = 'YukiWikiDB';
 my $modifier_sendmail = '';
-# my $modifier_sendmail = '/usr/sbin/sendmail -t -n';
+#my $modifier_sendmail = '/usr/sbin/sendmail -t -n';
 ##############################
 #
 # You MAY modify following variables.
@@ -91,8 +94,10 @@ my $AdminSpecialPage = 'Admin Special Page'; # must include spaces.
 my $wiki_name = '\b([A-Z][a-z]+([A-Z][a-z]+)+)\b';
 my $bracket_name = '\[\[([^\]]+?)\]\]';
 my $embedded_name = '(\#\S+?)';
-my $interwiki_definition = '\[\[(\S+?)\ (\S+?)\]\]';
+my $interwiki_definition = '\[\[(\S+?)\ (\S+?)\]\]';	# ? \[\[(\S+) +(\S+)\]\]
+my $interwiki_definition2 = '\[(\S+?)\ (\S+?)\]\ (utf8|euc|sjis|yw|asis|raw)';
 my $interwiki_name = '([^:]+):([^:].*)';
+my $interwiki_name2 = '([^:]+):([^:#].*?)(#.*)?';
 ##############################
 my $embed_plugin = '^#([^(]+)(\(([^)]+)\))?$';
 my $embed_inline = '(&amp;[^;&]+;|&amp;[^)]+\))';
@@ -133,7 +138,14 @@ $::counter_ext = '.count';
 my $lastmod;	# v0.0.9
 my %_plugined;	# 1:Pyuki/2:Yuki/0:None
 
+if (!$::upload_link) {
+	$::upload_link = $::upload_dir;
+}
+
 ##############################
+my $_conv_start;
+$_conv_start = (times)[0] if ($::enable_convtime != 0);
+
 &main;
 exit(0);
 ##############################
@@ -170,6 +182,12 @@ sub main {
 
 sub do_read {
 	&print_header($::form{mypage});
+	if (&is_exist_page($::Header)) {
+		print "<div id=\"pageheader\">";
+		&print_content($::database{$::Header});
+		print "</div>";
+	}
+
 	print <<"EOD";
 <table border="0" style="width:100%">
   <tr>
@@ -192,6 +210,11 @@ EOD
   </tr>
 </table>
 EOD
+	if (&is_exist_page($::Footer)) {
+		print "<div id=\"pagefooter\">";
+		&print_content($::database{$::Footer});
+		print "</div>";
+	}
 	&print_footer($::form{mypage});
 }
 
@@ -289,15 +312,11 @@ sub print_error {
 	exit(0);
 }
 
-my $_conv_start;
-
 sub print_header {
 	my ($page) = @_;
 	my $bodyclass = "normal";
 	my $editable = 0;
 	my $admineditable = 0;
-
-	$_conv_start = (times)[0] if ($::enable_convtime != 0);
 
 	if (&is_frozen($page) and $::form{cmd} =~ /^(read|write)$/) {
 		$editable = 0;
@@ -334,7 +353,7 @@ Content-type: text/html; charset=$::charset
   <link rel="stylesheet" href="print.ja.css" type="text/css" media="print" charset="Shift_JIS" />
 EOD
 	if ($::extend_edit) {
-		print '<script type="text/javascript" src="./instag.js"></script>' . "\n";
+		print '<script type="text/javascript" src="' . $::modifierlink_data . '/instag.js"></script>' . "\n";
 	}
 	print <<"EOD";
 </head>
@@ -344,7 +363,7 @@ EOD
 <h1 class="title"><a
     title="$::resource{searchthispage}"
     href="$::script?cmd=search&amp;mymsg=$cookedpage">@{[&htmlspecialchars($page)]}</a></h1>
-<a href="$::script?$page">$::script?$cookedpage</a>
+<a href="$::script?$cookedpage">$::script?$cookedpage</a>
 </div>
 <div id="navigator">
 
@@ -420,7 +439,7 @@ Based on "YukiWiki" 2.1.0 by <a href="http://www.hyuki.com/yukiwiki/">yuki</a>
 and <a href="http://pukiwiki.org">"PukiWiki"</a><br />
 EOD
 	if ($::enable_convtime != 0) {
-		printf('<br />HTML convert time to %.3f sec.', (times)[0] - $_conv_start);
+		printf('<br />HTML convert time to %.3f sec.<br />', (times)[0] - $_conv_start);
 	}
 	print <<"EOD";
 </div>
@@ -546,6 +565,12 @@ sub text_to_html {
 			push(@result, join('', '<tr>', @value, '</tr>'));
 			# XXXXX
 			#######
+		} elsif (/^====/) {
+			if ($::form{show} ne 'all') {
+				push(@result, splice(@saved), "<a href=\"$::script?cmd=read&mypage="
+					. &encode($::form{mypage}) . "&show=all\">$::resource{continue_msg}</a>");
+				last;
+			}
 		} else {
 			push(@result, &inline($_));
 		#	push(@result, "<br />");	# Thanks wadldw.
@@ -636,7 +661,7 @@ sub inline {
 		$line =~ s|\s(;\))| <img src="$::modifierlink_data/face/wink.png" alt="$1" />|g;
 		$line =~ s|\s(;\()| <img src="$::modifierlink_data/face/sad.png" alt="$1" />|g;
 		$line =~ s|\s(\:\()| <img src="$::modifierlink_data/face/sad.png" alt="$1" />|g;
-		$line =~ s|&heart;|<img src="$::modifierlink_data/face/heart.png" alt="$1" />|g;
+		$line =~ s|&(heart);|<img src="$::modifierlink_data/face/heart.png" alt="$1" />|g;
 	}
 
 	return $line;
@@ -664,8 +689,8 @@ sub make_link {
 		}
 	} elsif ($chunk =~ /^(mailto):(.*)/) {
 		return qq(<a href="$chunk">$2</a>);
-#	} elsif ($chunk =~ /^$interwiki_definition$/) {
-#		return qq(<span class="InterWiki">$chunk</span>);
+	} elsif ($chunk =~ /^$interwiki_definition2$/) {
+		return qq(<span class="InterWiki"><a href="$1">$2</a> $3</span>);
 	} elsif ($chunk =~ /$embed_inline/) {
 		return &embedded_inline($1)
 	} else {
@@ -678,38 +703,90 @@ sub make_link {
 			$cookedchunk = &encode($alias[1]);
 			$escapedchunk = &htmlspecialchars($alias[0]);
 			$chunk = $alias[1];
-		} elsif ($chunk =~ /(.+?):(.+)/ && !$::interwiki{$1}) {
-			$cookedchunk = &encode($2);
+		} elsif (($chunk =~ /(.+?):((http|https|ftp):.*)/)
+			or ($chunk =~ /(.+?):(.+)/ && !$::interwiki{$1})) {
 			$escapedchunk = &htmlspecialchars($1);
 			$chunk = $2;
+			$cookedchunk = &encode($chunk);
 		}
 		if ($chunk =~ /^(http|https|ftp):/) {
-			if ($use_autoimg and $chunk =~ /\.(gif|png|jpeg|jpg)$/) {
+			if ($use_autoimg and $escapedchunk =~ /\.(gif|png|jpeg|jpg)$/) {
 				return qq(<a href="$chunk"><img src="$escapedchunk"></a>);
 			} else {
+				if ($::use_popup != 0) {	# v0.0.9
+					return qq(<a href="$chunk" target="_blank" >$escapedchunk</a>);
+				}
 				return qq(<a href="$chunk">$escapedchunk</a>);
+			}
+		} elsif ($chunk =~ /^$interwiki_name2$/) {
+			my ($intername, $keyword, $anchor) = ($1, $2, $3);
+			if (exists $::interwiki2{$intername}) {
+				my ($code, $url) = %{$::interwiki2{$intername}};
+				$url =~ s/\$1/&interwiki_convert($code, $keyword)/e;
+				$url = &htmlspecialchars($url.$anchor);
+				if ($::use_popup != 0) {	# v0.0.9
+					return qq(<a href="$url" target="_blank">$escapedchunk</a>);
+				}
+				return qq(<a href="$url">$escapedchunk</a>);
+			} else {
+				return $escapedchunk;
 			}
 		} elsif ($chunk =~ /^$interwiki_name$/) {
 			my ($intername, $localname) = ($1, $2);
 			my $remoteurl = $::interwiki{$intername};
 			if ($remoteurl) {
-				$remoteurl =~ s/\b(utf8|euc|sjis|ykwk|asis)\(\$1\)/&interwiki_convert($1, $localname)/e;
+				$remoteurl =~
+				 s/\b(utf8|euc|sjis|ykwk|asis)\(\$1\)/&interwiki_convert($1, $localname)/e;
 				return qq(<a href="$remoteurl">$escapedchunk</a>);
 			} else {
 				return $escapedchunk;
 			}
-		} elsif ($::database{$chunk}) {
-			my $subject = &htmlspecialchars(&get_subjectline($chunk, delimiter => ''));
-			return qq(<a title="$subject" href="$::script?$cookedchunk">$escapedchunk</a>);
+		}
+
+		$chunk = get_fullname($chunk, $::form{mypage});
+		$cookedchunk  = &encode($chunk);
+		if ($::database{$chunk}) {
+			return qq(<a title="$chunk" href="$::script?$cookedchunk">$escapedchunk</a>);
 		} elsif ($page_command{$chunk}) {
 			return qq(<a title="$escapedchunk" href="$::script?$cookedchunk">$escapedchunk</a>);
 		} elsif (($chunk =~ /^([^#]*)#/) && $::database{$1}) {
-			my $subject = &htmlspecialchars(&get_subjectline($1, delimiter => ''));
-			return qq(<a title="$subject" href="$::script?$chunk">$escapedchunk</a>);
-		} else {
+			return qq(<a title="$chunk" href="$::script?$chunk">$escapedchunk</a>);
+		} elsif (&is_editable($chunk)) {
 			return qq($escapedchunk<a title="$::resource{editthispage}" class="editlink" href="$::script?cmd=edit&amp;mypage=$cookedchunk">$editchar</a>);
 		}
+		return $escapedchunk;
 	}
+}
+
+sub get_fullname {
+	my ($name, $refer) = @_;
+
+	if ($name eq '') {
+		return $refer;
+	}
+	if ($name eq '/') {
+		$name = substr($name,1);
+		return ($name eq '') ? $::FrontPage : $name;
+	}
+	if ($name eq './') {
+		return $refer;
+	}
+	if (substr($name,0,2) eq './') {
+		return ($1)? $refer.'/'.$1: $refer;
+	}
+	if (substr($name,0,3) eq '../') {
+		my @arrn = split('/', $name);
+		my @arrp = split('/', $refer);
+
+		while (@arrn > 0 and $arrn[0] eq '..')
+		{
+			shift(@arrn);
+			pop(@arrp);
+		}
+		$name = @arrp ? join('/',(@arrp,@arrn)) :
+			(@arrn ? "$::FrontPage/".join('/',@arrn) : $::FrontPage);
+	}
+	return $name;
 }
 
 sub print_message {
@@ -901,6 +978,8 @@ sub is_editable {
 		return 0;
 	} elsif ($page =~ /^$interwiki_name$/) {
 		return 0;
+	} elsif ($page =~ /(^|\/)\.{1,2}(\/|$)/) { # ./ ../ is ng
+		return 0;
 	} elsif (not $page) {
 		return 0;
 	} else {
@@ -1001,11 +1080,15 @@ sub get_now {
 }
 
 # [[YukiWiki http://www.hyuki.com/yukiwiki/wiki.cgi?euc($1)]]
+# [http://www.hyuki.com/yukiwiki/wiki.cgi?$1 YukiWiki] euc
 sub init_InterWikiName {
 	my $content = $::database{$interwikiName};
-	while ($content =~ /\[\[(\S+) +(\S+)\]\]/g) {
+	while ($content =~ /$interwiki_definition/g) {
 		my ($name, $url) = ($1, $2);
 		$::interwiki{$name} = $url;
+	}
+	while ($content =~ /$interwiki_definition2/g) {
+		$::interwiki2{$2}{$3} = $1;
 	}
 }
 
@@ -1014,7 +1097,7 @@ sub interwiki_convert {
 	if ($type eq 'sjis' or $type eq 'euc' or $type eq 'utf8') {
 		&code_convert(\$localname, $type);
 		return &encode($localname);
-	} elsif ($type eq 'ykwk') {
+	} elsif (($type eq 'ykwk') || ($type eq 'yw')) {
 		# for YukiWiki1
 		if ($localname =~ /^$wiki_name$/) {
 			return $localname;
@@ -1022,8 +1105,8 @@ sub interwiki_convert {
 			&code_convert(\$localname, 'sjis');
 			return &encode("[[" . $localname . "]]");
 		}
-	} elsif ($type eq 'asis') {
-		return $localname;
+#	} elsif (($type eq 'asis') || ($type eq 'raw')) {
+#		return $localname;
 	} else {
 		return $localname;
 	}
@@ -1257,13 +1340,13 @@ sub date
 	$format =~ s/I/$isdst/ge;	# I(Upper i):1 Summertime/0:Not
 
 	# Not Allowed
-	# L uzzéÃqé√q€“Ì“éßqé≈qé¢qéßq˚‹{qéµ|é›|<yÛ“a 1qé∆qÈ÷zzéÃqa0qé∆qÈ÷zzéÃqé√qéÀqé∆qé†qa 
-	# O rnr)r≥”£”v{vx€âGMT)qéƒqé €÷é“wV Example: +0200 
-	# r RFC 822 r«”gqzrŸ”£”≠“é±qÔ“éªz”‹«ÅExample: Thu, 21 Dec 2000 16:01:07 +0200 
-	# S uø◊Ô◊éﬁéÆqé x7x√“˚‹{qéµrsr«”ar£”mrwqa2 {U”“a st, nd, rd or th. Works well with j  
-	# T qéØqé rŸ”uqzr2qé r}rbrr|qzr2qé xé€yÎ“a Examples: EST, MDT ... 
-	# U Unix €â1970zéÃ1v∑íz”ë€ë{I0{£äqéßqÈ“é {£Ÿ√ÅSee also time() 
-	# W ISO-8601 v∑›≥€”“é«nqé⁄qÌ€éÃyéŒté»qé xszé“w% (PHP 4.1.0qé√yé≈u`) Example: 42 (the 42nd week in the year) 
+	# L ±º«Ø§«§¢§Î§´§…§¶§´§Ú…Ω§πœ¿Õ˝√Õ°£ 1§ §È±º«Ø°£0§ §È±º«Ø§«§œ§ §§°£ 
+	# O •∞•Í•À•√•∏…∏Ω‡ª˛(GMT)§»§Œª˛¥÷∫π Example: +0200 
+	# r RFC 822 •’•©°º•ﬁ•√•»§µ§Ï§ø∆¸…’ Example: Thu, 21 Dec 2000 16:01:07 +0200 
+	# S ±—∏Ï∑¡º∞§ŒΩ¯øÙ§Ú…Ω§π•µ•’•£•√•Ø•π°£2  ∏ª˙°£ st, nd, rd or th. Works well with j  
+	# T §≥§Œ•ﬁ•∑°º•Û§Œ•ø•§•‡•æ°º•Û§Œ¿ﬂƒÍ°£ Examples: EST, MDT ... 
+	# U Unix ª˛(1970«Ø1∑Ó1∆¸0ª˛0 ¨0…√)§´§È§Œ…√øÙ See also time() 
+	# W ISO-8601 ∑ÓÕÀ∆¸§Àªœ§ﬁ§Î«Ø√±∞Ã§ŒΩµ»÷πÊ (PHP 4.1.0§«ƒ…≤√) Example: 42 (the 42nd week in the year) 
 	$format =~ s/z/$yday/ge;	# z:days/year 0-366
 	return $format;
 }

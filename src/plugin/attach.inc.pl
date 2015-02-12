@@ -5,10 +5,13 @@
 #
 # based on PukiWiki attach.inc.php
 
-use strict;
+#use strict;
 use CGI qw(:standard);
-use Digest::MD5 qw(md5_hex);
-use File::Basename;
+if ($::use_perlmd5 == 1) {
+	eval { use Digest::perl::MD5 qw(md5_hex); };
+} else {
+	eval { use Digest::MD5 qw(md5_hex); };
+}
 
 #--------------------------------------------------------
 my %mime = (
@@ -37,7 +40,9 @@ my %mime = (
 
 # file icon image
 if (!$::file_icon) {
-	$::file_icon = '<img src="./image/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
+	$::file_icon = '<img src="'
+		. $::modifierlink_data
+		. '/image/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
 }
 
 #-------- convert
@@ -212,14 +217,17 @@ sub attach_upload
 	if ($::file_uploads == 2 && !&valid_password($pass)) {
 		return ('msg'=>$::form{mypage}, 'body'=>$::resource{attach_err_password});
 	}
-
-	my $parsename = $filename;
+	my ($parsename, $path, $ffile);
+	$parsename = $filename;
 	$parsename =~ s#\\#/#g;	# \を/に変換
+	$parsename =~ s/^http:\/\///;
+	$parsename =~ /([^:\/]*)(:([0-9]+))?(\/.*)?$/;
+	$path = $4 || '/';
+	$path =~ /(.*\/)(.*)/;			#$ffileには直下のファイル名
+	$ffile = $2;			#ファイル名が無い場合'/')
+	$ffile =~ s/#.*$//;		# #はページ内リンクなので、削除する
 
-	# ファイル名を（ベース名, ディレクトリ名, 拡張子）に分解
-	my @basename = fileparse($parsename, "\.[^\.]+");
-
-	my $obj = new AttachFile($page, $basename[0] . $basename[2]);
+	my $obj = new AttachFile($page, $ffile);
 	if ($obj->{exist}) {
 		return ('msg'=>$::resource{_attach_err_exists});
 	}

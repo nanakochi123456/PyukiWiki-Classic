@@ -38,7 +38,9 @@
 
 use strict;
 
-my $file_icon = '<img src="./image/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
+my $file_icon = '<img src="'
+	. $::modifierlink_data
+	. '/image/file.png" width="20" height="20" alt="file" style="border-width:0px" />';
 
 # default alignment
 my $ref_default_align = 'left'; # 'left','center','right'
@@ -123,13 +125,12 @@ sub getimagesize
 	return ($width, $height);
 }
 
-
 sub plugin_ref_body
 {
-	my ($args, $page) = @_;
+	my ($args) = @_;
 	my @args = split(/,/, $args);
-
-	my $name = shift(@args);
+	my $name = &trim(shift(@args));
+	my $page;
 
 #	my %params = {
 #		'left'   => 0,	# 左寄せ
@@ -151,20 +152,24 @@ sub plugin_ref_body
 #		'_error' => ''
 #	};
 
-	my %params;
-	my $_title;
+	my (%params, $_title, $_backup);
 	foreach (@args) {
-		$_ = lc $_;
-		if (/^([0-9]+)x([0-9]+)$/) {
+		$_backup = $_;
+		$_ = &trim($_);
+		if (/^([0-9]+)x([0-9]+)$/i) { # size pixcel
 			$params{_size} = 1;
 			$params{_w} = $1;
 			$params{_h} = $2;
-		} elsif (/^([0-9.]+)%$/) {
+		} elsif (/^([0-9.]+)%$/i) { # size %
 			$params{_par} = $1;
-		} elsif (/(left|center|right|wrap|nowrap|around|noicon|nolink|noimg|zoom)/) {
-			$params{$_} = 1;
+		} elsif (/(left|center|right|wrap|nowrap|around|noicon|nolink|noimg|zoom)/i) { # align
+			$params{lc $_} = 1;
 		} else {
-			$_title = $_;
+			if (!$page and &is_exist_page($_)) {
+				$page = $_;
+			} else {
+				$_title = $_backup;
+			}
 		}
 	}
 
@@ -190,6 +195,7 @@ sub plugin_ref_body
 		}
 		$title = &htmlspecialchars($name);
 		my $file = $::upload_dir . &::dbmname($page) . '_' . &::dbmname($name);
+		my $file2 = $::upload_link . &::dbmname($page) . '_' . &::dbmname($name);
 		if (!-e $file) {
 			$params{_error} = 'file not found.' . $file;
 			return %params;
@@ -201,7 +207,7 @@ sub plugin_ref_body
 		if ($is_image) {
 			($width, $height) = getimagesize($name, $file);
 			$url2 = $url;
-			$url = $file;
+			$url = $file2;
 		} else {
 			my ($sec, $min, $hour, $day, $mon, $year) = localtime((stat($file))[10]);
 			$info = sprintf("%d/%02d/%02d %02d:%02d:%02d %01.1fK",
@@ -250,6 +256,8 @@ sub plugin_ref_body
 	} else {
 		$params{_align} = $ref_default_align;
 	}
+
+	$title = $_title if ($_title);
 
 	# ファイル種別判定
 	if ($is_image) {	# 画像
