@@ -87,8 +87,9 @@ attach_msg_uploaded=Uploaded
 attach_err_password=Illigal Password
 attach_err_exceed=File Size too big
 attach_err_notfound=Can't Find file
-
 btn_upload=Upload
-cancel=cancel
-auth_writefobidden=Deny for write this page
-auth_readfobidden=Deny for read this page
+sbookmark_plugin_yourname=Your name:
+sbookmark_plugin_title=Site Title:
+sbookmark_plugin_url=Site Uri:
+sbookmark_plugin_comment=Comment:
+sbookmark_plugin_button=bookmark

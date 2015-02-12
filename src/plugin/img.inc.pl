@@ -1,50 +1,33 @@
-######################################################################
+############################################################
+# img r�� rnrb  
 # img.inc.pl
-# PyukiClassic v 0.1.6b or laiter
-# Author: Nekyo
-# Copyright (C) 2004-2006 by Nekyo.
-# http://nekyo.hp.infoseek.co.jp/
-# License: GPL2
-######################################################################
-use strict;
+# Copyright(c) 2004 Nekyo.
+# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
+# 1TAB=4Spaces
 
-##
-# img戊件田□玄
-# v0.1.6b 方曰仇及楮醒毛 index.cgi 及 img 庍晶匹手裟太請允方丹膜懇
-# @param $uri 脰颶及 URI
-# @param $align r,right(惘湮六) or l,left(爾湮六) or module(index.cgi 井日及裟太請仄) or 公木動陸(弁伉失)
-# @param $alt(戊丟件玄)
-# @return img 正弘
 sub plugin_img_convert {
-	my ($uri, $align, $alt) = split(/,/, shift);
-	$uri   = &trim($uri);
-	$align = &trim($align);
-	$alt   = &trim($alt);
-	my $module = 0;
-	my $res = '';
+	my $argv = shift;
+	my ($uri, $align, $alt) = split(/,/, $argv);
+	$uri   = trim($uri);
+	$align = trim($align);
+	$alt = trim($alt);
 
 	if ($align =~ /^(r|right)/i) {
 		$align = 'right';
 	} elsif ($align =~ /^(l|left)/i) {
 		$align = 'left';
-	} elsif ($align =~ /^module$/i) {
-		$module = 1;
 	} else {
 		return '<div style="clear:both"></div>';
 	}
-	if ($uri =~ /^(https?|ftp):/) {
-		if ($uri =~ /\.(gif|png|jpe?g)$/i) {
-			if ($module == 1) {
-				# 优邰匹丐木壬﹜仇及朿坌毛傀艦允月﹝
-				$res .= "<a href=\"$uri\"><img src=\"$uri\" /></a>\n";
-			} else {
-				$res .= "<div style=\"float:$align; padding:.5em 1.5em .5em 1.5em;\"><img src=\"$uri\"";
-				$res .= " alt=\"$alt\"" if ($alt ne '');
-				$res .= " /></div>\n";
-			}
+	if ($uri =~ /^(http|https|ftp):/) {
+		if ($uri =~ /\.(gif|png|jpeg|jpg)$/i) {
+			return <<"EOD";
+<div style="float:$align;padding:.5em 1.5em .5em 1.5em">
+ <img src="$uri" alt="$alt" />
+</div>
+EOD
 		}
 	}
-	return $res;
+	return '';
 }
 1;
-__END__

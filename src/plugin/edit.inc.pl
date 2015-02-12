@@ -91,10 +91,9 @@ EOD
 @{[
   $mode{conflict} ? "" :
   qq(
+    <input type="checkbox" name="mytouch" value="on" checked="checked">$::resource{touch}<br>
     <input type="submit" name="mypreview_$edit" value="$::resource{previewbutton}">
-    <input type="submit" name="mypreview_write" value="$::resource{savebutton}">
-    <input type="checkbox" name="mytouch" value="on" checked="checked">$::resource{touch}&nbsp;
-	<input type="button" value="$::resource{cancel}" onClick="JavaScript:location.href='$::script?$::form{mypage}'">
+    <input type="submit" name="mypreview_write" value="$::resource{savebutton}"><br>
   )
 ]}
 </form>

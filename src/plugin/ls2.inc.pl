@@ -59,7 +59,7 @@ EOD
 				chomp;
 				if (/^(\*{1,3})(.+)/) {
 					&back_push('ul', length($1), \@tocsaved, \@tocresult);
-					push(@tocresult, qq( <li><a href="$::script?$page#i$tocnum">@{[&htmlspecialchars($2)]}</a></li>\n));	
+					push(@tocresult, qq( <li><a href="$::script?$page#i$tocnum">@{[&escape($2)]}</a></li>\n));	
 					$tocnum++;
 				}
 			}

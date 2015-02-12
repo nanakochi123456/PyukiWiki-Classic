@@ -16,7 +16,7 @@ sub plugin_usage {
 	return {
 		name => 'br',
 		version => '1.0',
-		author => 'Nekyo',
+		author => 'Nekyo <nekyo@yamaneko.club.ne.jp>',
 		syntax => '&br',
 		description => 'line break.',
 		example => '&br',
