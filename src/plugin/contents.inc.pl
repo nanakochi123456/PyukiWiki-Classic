@@ -4,6 +4,8 @@
 # Copyright(c) 2004 Nekyo.
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # 1TAB=4Spaces
+# v0.0.2 2005/01/20 base による弊害の対応
+# v0.0.1 プロトタイプ
 
 use strict;
 
@@ -21,7 +23,8 @@ sub plugin_contents_convert {
 			&back_push('ul', length($1), \@tocsaved, \@tocresult);
 			$title = &::inline($2);
 			$title =~ s/<[^>]+>//g;
-			push(@tocresult, qq( <li><a href="#$nametag$tocnum">$title</a></li>\n));
+			push(@tocresult, qq(<li><a href="?) . &::encode($::form{mypage})
+				. qq(#$nametag$tocnum">$title</a></li>\n));
 			$tocnum++;
 		}
 	}

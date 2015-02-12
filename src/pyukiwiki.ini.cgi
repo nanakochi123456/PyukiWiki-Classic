@@ -28,8 +28,8 @@ $::info_dir    = "$::data_home/info";		# 情報用
 $::skin_file   = "$::skin_dir/pyukiwiki.skin." . $::lang . ".cgi";
 
 # 修正者情報
-$::modifier = 'anonimous';				# 修正者名
-$::modifierlink = 'http://Change me!/'; # 修正者URI
+$::modifier = 'Nekyo';					# 修正者名
+$::modifierlink = 'http://nekyo.hp.infoseek.co.jp/'; # 修正者URI
 $::modifier_mail = '';					# 修正者メールアドレス
 
 # デフォルトページ名
@@ -47,7 +47,7 @@ $::adminpass = crypt("pass", "AA");
 
 # RSS情報
 $::modifier_rss_title = "PyukiWiki $::version";
-$::modifier_rss_link = 'http://Change me!/';
+$::modifier_rss_link = 'http://nekyo.hp.infoseek.co.jp/';
 $::modifier_rss_description = 'This is PyukiWiki.';
 
 # 表示設定

@@ -46,7 +46,7 @@ sub plugin_list_action {
 EOD
 			$idx++;
 		}
-		$body .= qq(<li><a href="$::script?@{[&htmlspecialchars($page)]}">@{[&escape($page)]}</a>@{[&escape(&get_subjectline($page))]}</li>\n);
+		$body .= qq(<li><a href="$::script?@{[&encode($page)]}">@{[&htmlspecialchars($page)]}</a>@{[&htmlspecialchars(&get_subjectline($page))]}</li>\n);
 	}
 	$body .= qq(</li></ul>);
 

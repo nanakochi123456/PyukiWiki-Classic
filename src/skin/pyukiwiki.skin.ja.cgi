@@ -1,4 +1,5 @@
-# skin
+# Default skin
+# Copyright(c) Nekyo
 
 sub skin {
 	my ($page, $body, $is_page) = @_;
@@ -25,6 +26,16 @@ sub skin {
 		$lastmod = &date("Y-m-d H:i:s", (stat($::dataname . "/" . &dbmname($page) . ".txt"))[9]);
 	}
 
+	# Thanks moriyoshi koizumi.
+	my $base = "$ENV{'HTTP_HOST'}";
+	if ($ENV{'SERVER_PORT'} ne "80") {
+		$base .= ":$ENV{'SERVER_PORT'}";
+	}
+	$base .= $ENV{'SCRIPT_NAME'};
+	if ($base ne "") {
+		$base = "<base href=\"http://" . $base . "?" . $cookedpage . "\" />\n";
+	}
+
 	print <<"EOD";
 Content-type: text/html; charset=$::charset
 
@@ -36,7 +47,7 @@ Content-type: text/html; charset=$::charset
   <meta http-equiv="Content-Language" content="$::lang">
   <meta http-equiv="Content-Type" content="text/html; charset=$::charset">
   <title>$escapedpage @{[&htmlspecialchars(&get_subjectline($page))]}</title>
-  <link rel="index" href="$::script?cmd=list">
+  $base<link rel="index" href="$::script?cmd=list">
   <link rev="made" href="mailto:$::modifier_mail">
   <link rel="stylesheet" href="$::skin_dir/default.$::lang.css" type="text/css" media="screen" charset="Shift_JIS" />
   <link rel="stylesheet" href="$::skin_dir/blosxom.css" type="text/css" media="screen" charset="Shift_JIS" />
@@ -104,10 +115,10 @@ EOD
     <td class="menubar">
     <div id="menubar">
 EOD
-		my $mypage = $::form{mypage};	# push;
+		$::pushedpage = $::form{mypage};	# push;
 		$::form{mypage} = $::MenuBar;
 		&print_content($::database{$::form{mypage}});
-		$::form{mypage} = $mypage;		# pop
+		$::form{mypage} = $::pushedpage;	# pop
 
 		print <<"EOD";
     </div>
@@ -155,8 +166,8 @@ EOD
 ]}
 <div id="footer">
 Modified by <a href="$::modifierlink">$::modifier</a><br /><br />
-<b>"PyukiWiki" $::version</b>
-Copyright&copy; 2004 by <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>.<br />
+<b>PyukiWiki $::version</b>
+Copyright&copy; 2004,2005 by <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>.<br />
 Based on "YukiWiki" 2.1.0 by <a href="http://www.hyuki.com/yukiwiki/">yuki</a>
 and <a href="http://pukiwiki.org">"PukiWiki"</a><br />
 EOD

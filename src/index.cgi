@@ -6,7 +6,8 @@
 # Copyright (C) 2004 by Nekyo.
 # http://nekyo.hp.infoseek.co.jp/
 #
-# Based on YukiWiki
+# Based on YukiWiki <hyuki@hyuki.com> http://www.hyuki.com/yukiwiki/
+# Powerd by PukiWiki http://pukiwiki.org/
 #
 # 1TAB=4Spaces
 #
@@ -37,11 +38,13 @@ use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
-$::version = '0.1.3';
+$::version = '0.1.4';
 ##############################
 # You MUST modify following initial file.
-
-require 'pyukiwiki.ini.cgi';
+if ($::ini_file eq '') {
+	$::ini_file = 'pyukiwiki.ini.cgi';
+}
+require $::ini_file;
 require $::skin_file;
 
 ##############################
@@ -89,6 +92,9 @@ my $interwiki_definition = '\[\[(\S+?)\ (\S+?)\]\]';	# ? \[\[(\S+) +(\S+)\]\]
 my $interwiki_definition2 = '\[(\S+?)\ (\S+?)\]\ (utf8|euc|sjis|yw|asis|raw)';
 my $interwiki_name = '([^:]+):([^:].*)';
 my $interwiki_name2 = '([^:]+):([^:#].*?)(#.*)?';
+#             ^$ascii     +@($domain              |$ip)
+my $ismail = '[\x01-\x7F]+\@(([-a-z0-9]+\.)*[a-z]+|\[\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\])';
+
 ##############################
 my $embed_plugin = '^#([^(]+)(\(([^)]+)\))?$';
 my $embed_inline = '(&amp;[^;&]+;|&amp;[^)]+\))';
@@ -267,10 +273,8 @@ sub text_to_html {
 			my $hedding = ($tocnum != 0)
 				? qq(<div class="jumpmenu"><a href="#navigator">&uarr;</a></div>)
 				: '';
-
-			my $nametag = ($::IsMenu == 1) ? "m" : "i";
 			push(@result, splice(@saved),
-				$hedding . qq(<$hn><a name="$nametag$tocnum"> </a>) . &inline($2) . qq(</$hn>)
+				$hedding . qq(<$hn><a name="i$tocnum"> </a>) . &inline($2) . qq(</$hn>)
 			);
 			$tocnum++;
 		} elsif (/^(-{2,3})\($/) {
@@ -286,21 +290,25 @@ sub text_to_html {
 		} elsif (/^----/) {
 			push(@result, splice(@saved), '<hr>');
 		} elsif (/^(-{1,3})(.+)/) {
-			&back_push('ul', length($1), \@saved, \@result,
-				" class=\"list" . length($1) . "\" style=\"padding-left:16px;margin-left:16px;\"");
+			my $class = "";
+			if ($::form{mypage} ne $::MenuBar) {
+				$class = " class=\"list" . length($1) . "\" style=\"padding-left:16px;margin-left:16px;\"";
+			}
+			&back_push('ul', length($1), \@saved, \@result, $class);
 			push(@result, '<li>' . &inline($2) . '</li>');
 		} elsif (/^(\+{1,3})(.+)/) {
-			&back_push('ol', length($1), \@saved, \@result,
-				" class=\"list" . length($1) . "\" style=\"padding-left:16px;margin-left:16px;\"");
+			my $class = "";
+			if ($::form{mypage} ne $::MenuBar) {
+				$class = " class=\"list" . length($1) . "\" style=\"padding-left:16px;margin-left:16px;\"";
+			}
+			&back_push('ol', length($1), \@saved, \@result, $class);
 			push(@result, '<li>' . &inline($2) . '</li>');
-		} elsif ((/^:([^:]+):(.*)/) || (/^:([^\|]+)\|(.*)/)) {
-			push(@saved, '<dl><dt>', &inline($1) . "</dt>\n<dd>");
-			push(@saved, &inline($2));
-			$verbatim = { func => \&inline, done => '' };
-			&back_push('', 0, \@saved, \@result);
-			push(@saved, "</dd>\n</dl>");
-		#	&back_push('dl', 1, \@saved, \@result);
-		#	push(@result, '<dt>' . &inline($1) . '</dt>', '<dd>' . &inline($2) . '</dd>');
+		} elsif (/^:([^:]+):(.+)/) {
+			&back_push('dl', 1, \@saved, \@result);
+			push(@result, '<dt>' . &inline($1) . '</dt>', '<dd>' . &inline($2) . '</dd>');
+		} elsif (/^:([^\|]+)\|(.*)/) {
+			&back_push('dl', 1, \@saved, \@result);
+			push(@result, '<dt>' . &inline($1) . '</dt>', '<dd>' . &inline($2) . '</dd>');
 		} elsif (/^(>{1,3})(.+)/) {
 			&back_push('blockquote', length($1), \@saved, \@result);
 			push(@result, &inline($2));
@@ -388,20 +396,18 @@ sub inline {
 		$line =~ s!^$embedded_name$!&embedded_to_html($1)!gex;	# #command
 	} else {
 		$line =~ s!
-			(
-				($bracket_name)			# [[likethis]], [[Friend:remotelink]]
+			(	($bracket_name)			# [[likethis]], [[Friend:remotelink]]
 					|
 				($interwiki_definition)	# [[Friend http://somewhere/?q=sjis($1)]]
 					|
-				((mailto|http|https|ftp):([^\x00-\x20()<>\x7F-\xFF\]])*)	# Direct http://...
+				((https?|ftp):([^\x00-\x20()<>\x7F-\xFF\]])*)	# Direct http://...
 					|
 				($wiki_name)			# LocalLinkLikeThis
 					|
 				($embed_inline)			# &user_defined_plugin(123,hello)
-			)
-			!
-				&make_link($1)
-			!gex;
+					|
+				($ismail)
+			)!&make_link($1)!gex;
 	}
 
 	if ($::usefacemark == 1) {
@@ -422,22 +428,21 @@ sub note {
 
 	push(@::notes, $msg);
 	return "<a id=\"notetext_" . @::notes . "\" "
+#		. "href=\"?" . &::encode($::form{mypage}) . "#notefoot_" . @::notes . "\" class=\"note_super\">*"
 		. "href=\"#notefoot_" . @::notes . "\" class=\"note_super\">*"
 		. @::notes . "</a>";
 }
 
 sub make_link {
 	my $chunk = shift;
-	if ($chunk =~ /^(http|https|ftp):/) {
-		if ($use_autoimg and $chunk =~ /\.(gif|png|jpeg|jpg)$/) {
+	if ($chunk =~ /^(https?|ftp):/) {
+		if ($use_autoimg and $chunk =~ /\.(gif|png|jpe?g)$/) {
 			return qq(<a href="$chunk"><img src="$chunk"></a>);
 		} else {
 			# v0.0.9
 			return qq(<a href="$chunk" target="_blank" >$chunk</a>) if ($::use_popup != 0);
 			return qq(<a href="$chunk">$chunk</a>);
 		}
-	} elsif ($chunk =~ /^(mailto):(.*)/) {
-		return qq(<a href="$chunk">$2</a>);
 	} elsif ($chunk =~ /^$interwiki_definition2$/) {
 		return qq(<span class="InterWiki"><a href="$1">$2</a> $3</span>);
 	} elsif ($chunk =~ /$embed_inline/) {
@@ -447,19 +452,21 @@ sub make_link {
 		$chunk = &unescape($chunk); # To treat '&' or '>' or '<' correctly.
 		my $cookedchunk = &encode($chunk);
 		my $escapedchunk = &htmlspecialchars($chunk);
-		if (0 < index($chunk, '>')) {			# Nekyo Add Start alias ymu=
-			my @alias = split(/>/, $chunk);		# [[alias>URL]]
-			$cookedchunk = &encode($alias[1]);
-			$escapedchunk = &htmlspecialchars($alias[0]);
-			$chunk = $alias[1];
-		} elsif (($chunk =~ /(.+?):((http|https|ftp):.*)/)
-			or ($chunk =~ /(.+?):(.+)/ && !$::interwiki{$1})) {
+		if ($chunk =~ /(.+?)>(.+)/ or $chunk =~ /(.+?):(.+)/) {	# v0.1.4
 			$escapedchunk = &htmlspecialchars($1);
 			$chunk = $2;
-			$cookedchunk = &encode($chunk);
+			if ($2 =~ /$ismail/) {
+				$escapedchunk = $chunk   if ($escapedchunk =~ /^mailto/);
+				$chunk = "mailto:$chunk" if ($chunk !~ /^mailto:/);
+				return qq(<a href="$chunk">$escapedchunk</a>);
+			} elsif (($chunk =~ /(https?|ftp):.*/) or !$::interwiki{$1}) {
+				$cookedchunk = &encode($chunk);
+			}
+		} elsif ($chunk =~ /^($ismail)/) {
+			return qq(<a href="mailto:$chunk">$chunk</a>);
 		}
-		if ($chunk =~ /^(http|https|ftp):/) {
-			if ($use_autoimg and $escapedchunk =~ /\.(gif|png|jpeg|jpg)$/) {
+		if ($chunk =~ /^(https?|ftp):/) {
+			if ($use_autoimg and $escapedchunk =~ /\.(gif|png|jpe?g)$/) {
 				return qq(<a href="$chunk"><img src="$escapedchunk"></a>);
 			} else {
 				# v0.0.9
@@ -545,12 +552,16 @@ sub init_form {
 		$ENV{QUERY_STRING} = $::FrontPage;
 	}
 
-	my $query = &decode($ENV{QUERY_STRING});
+	# Thanks Mr.koizumi. v0.1.4
+	my $query = $ENV{QUERY_STRING};
 	if ($query =~ /&/) {
 		my @querys = split(/&/, $query);
 		foreach (@querys) {
+			$_ = &decode($_);
 			$::form{$1} = $2 if (/([^=]*)=(.*)$/);
 		}
+	} else {
+		$query = &decode($query);
 	}
 
 	if ($query =~ /^($wiki_name)$/) {

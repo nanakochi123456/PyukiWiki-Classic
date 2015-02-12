@@ -1,4 +1,4 @@
-- 2004-12-09 (Thu) 18:00:16 FrontPage  - * このページはPyukiWikiのFrontPageです。
+- 2005-01-27 (Thu) 00:26:48 FrontPage  - * このページはPyukiWikiのFrontPageです。
+- 2005-01-27 (Thu) 00:25:55 MenuBar  - #recent(20)
 - 2004-12-09 (Thu) 17:32:38 [[整形ルール]]  - **テキスト整形のルール
-- 2004-12-09 (Thu) 17:29:47 MenuBar  - 
 - 2004-11-26 (Fri) 22:53:02 InterWikiName  - InterWiki用のサーバリストです。

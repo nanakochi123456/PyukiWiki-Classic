@@ -1,6 +1,6 @@
 ##
 # PyukiWiki Plugin
-# lookup.inc.pl v0.2 Nekyo
+# lookup.inc.pl v0.3 Nekyo(c)
 #
 use strict;
 
@@ -30,14 +30,16 @@ EOD
 }
 
 sub plugin_lookup_action {
-	my $text = &::decode($::form{page});
+	my $text = &::decode($::form{page});	# 入力テキスト
 
-	# pyukiwiki
 	my ($code, $uri) = %{$::interwiki2{$::form{inter}}};
-	if ($uri) {
-		$uri =~ s/\$1/&interwiki_convert($code, $text)/e;
-	} else {
-		# yukiwiki
+	if ($uri) {	# pukiコンパチ
+		if ($uri =~ /\$1/) {
+			$uri =~ s/\$1/&interwiki_convert($code, $text)/e;
+		} else {
+			$uri .= &interwiki_convert($code, $text);
+		}
+	} else {	# yukiコンパチ
 		$uri = $::interwiki{$::form{inter}};
 		if ($uri) {
 			$uri =~ s/\b(utf8|euc|sjis|ykwk|yw|asis)\(\$1\)/&interwiki_convert($1, $text)/e;
