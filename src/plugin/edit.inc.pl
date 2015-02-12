@@ -107,7 +107,6 @@ EOD
 		#close(FILE);
 		#$body .= &text_to_html($content, toc=>0);
 		$body .= &text_to_html($::database{$::rule_page}, toc=>0);
-
 	}
 	return $body;
 }

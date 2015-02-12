@@ -2,6 +2,7 @@
 # comment plugin
 # comment.inc.pl
 # Copyright(c) 2004 Nekyo.
+# v 0.0.3 - 2006/01/15 Tnx:Birgus-Latro
 # v 0.0.2 - 2004/10/28 Tnx:Birgus-Latro
 # v 0.0.1 - ProtoType
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
@@ -13,17 +14,24 @@ use strict;
 my $comment_format = "\x08MSG\x08 -- \x08NAME\x08 \x08NOW\x08";
 
 sub plugin_comment_action {
+	my $comment = $::form{mymsg};
+
+	&::spam_filter($comment, 1);
+
 	my $lines = $::database{$::form{mypage}};
 	my @lines = split(/\r?\n/, $lines);
-
 	my $datestr = ($::form{nodate} == 1) ? '' : &get_now;
-	my $_name = $::form{myname} ? " ''[[$::form{myname}]]'' : " : " ";
-	my $_now = "&new{$datestr};";
+	my $_name = " ";
 
+	if ($::form{myname}) {
+		&::spam_filter($::form{myname}, 0);
+		$_name = " ''[[$::form{myname}]]'' : ";
+	}
+	my $_now = "&new{$datestr};";
 	my $postdata = '';
 	my $_comment_no = 0;
 
-	my $comment = $comment_format;
+	$comment = $comment_format;
 	$comment =~ s/\x08MSG\x08/$::form{mymsg}/;
 	$comment =~ s/\x08NAME\x08/$_name/;
 	$comment =~ s/\x08NOW\x08/$_now/;
@@ -42,6 +50,7 @@ sub plugin_comment_action {
 	if ($::form{mymsg}) {
 		$::form{mymsg} = $postdata;
 		$::form{mytouch} = 'on';
+
 		&do_write('FrozenWrite');
 	} else {
 		$::form{cmd} = 'read';

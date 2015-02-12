@@ -1,7 +1,7 @@
 ##############################
 # pyukiwiki.ini.cgi
 #
-# Copyright (C) 2004-2006 by Nekyo.
+# Copyright (C) 2004 Nekyo.
 # http://nekyo.hp.infoseek.co.jp/
 #
 # 1TAB=4Spaces
@@ -12,26 +12,33 @@ use strict;
 $::lang = "ja";       # ja:日本語/en:英語(参考)
 $::kanjicode = "euc"; # euc:EUC-JP/utf8:UTF-8
 
+##
 # データ格納ディレクトリ
-$::data_home   = '.'; # ページデータ等のディレクトリ
+#
+# 通常版設定
+$::data_home = '.';
+$::uri_home = $::data_home;
+#
+# nifty 設定
+# $::data_home = '/cgi-bin';
+# $::uri_home  = 'http://homepage?.nifty.com';
+
 $::data_dir    = "$::data_home/wiki";		# ページデータ保存用
 $::diff_dir    = "$::data_home/diff";		# 差分保存用
 $::cache_dir   = "$::data_home/cache";		# 一時用
 $::upload_dir  = "$::data_home/attach";		# 添付用
 $::counter_dir = "$::data_home/counter";	# カウンタ用
 $::plugin_dir  = "$::data_home/plugin";		# プラグイン用
-$::skin_dir    = "$::data_home/skin";		# スキン用
-$::image_dir   = "$::data_home/image";		# 画像用
+$::skin_dir    = "$::data_home/skin";		# スキン cgi用
 $::info_dir    = "$::data_home/info";		# 情報用
 $::res_dir     = "$::data_home/resource";	# リソース
 $::js_dir      = "$::skin_dir/js";			# JavaScript用物理パス
-# このディレクトリに プラグイン名.js ファイルを入れておくと、
-# そのプラグインが使用されているページで自動的に読み込まれる。
-$::js_url      = $::js_dir;					# JavaScript用論理パス(相対パスなら同じ?)
 $::css_dir     = "$::skin_dir/css";			# CSS用物理パス
-# このディレクトリに プラグイン名.css ファイルを入れておくと、
-# そのプラグインが使用されているページで自動的に読み込まれる。
-$::css_url     = $::css_dir;				# CSS用論理パス
+
+$::skin_uri    = "$::uri_home/skin";		# スキン 非cgi用
+$::image_dir   = "$::uri_home/image";		# 画像用
+$::js_uri      = "$::skin_uri/js";			# JavaScript用論理パス(相対パスなら同じ?)
+$::css_uri     = "$::skin_uri/css";			# CSS用論理パス
 
 # スキンファイル(省略すれば pyukiwiki.skin.cgi が使われる。
 #$::skin_file = "pyukiwiki.skin.cgi";
@@ -52,7 +59,7 @@ $::Header        = ':Header';
 $::Footer        = ':Footer';
 $::rule_page     = "整形ルール";
 
-# デフォルトの凍結パスワード(ここを変更して下さい)
+# デフォルトの凍結パスワード(ここを変更して下さい pass 側を変更 AA はそのまま)
 $::adminpass = crypt("pass", "AA");
 
 # RSS情報
@@ -110,9 +117,8 @@ $::gzip_path = '';
 #$::disablewords = "aaa
 #bbb";
 
-##
-# 接続拒否アドレス
-# 192.168.100.* からの接続を拒否したい場合は以下の様に記述。
-#$::disableaddr = "192.168.100.";
+$::filter_flg = 0;		# 1:スパムフィルターを有効にする。
+#$::chk_uri_count = 20;	# 一度のメッセージに投稿される https?:// の上限を指定する。
+#$::chk_jp_only = 1;	# カタカナかひらがなが含まれていなければNGとする。
 
 1;

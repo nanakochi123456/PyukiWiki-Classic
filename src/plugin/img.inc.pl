@@ -32,7 +32,7 @@ sub plugin_img_convert {
 	} else {
 		return '<div style="clear:both"></div>';
 	}
-	if ($uri =~ /^(https?|ftp):/) {
+#	if ($uri =~ /^(https?|ftp):/) {
 		if ($uri =~ /\.(gif|png|jpe?g)$/i) {
 			if ($module == 1) {
 				# 必要であれば、この部分を拡張する。
@@ -43,7 +43,7 @@ sub plugin_img_convert {
 				$res .= " /></div>\n";
 			}
 		}
-	}
+#	}
 	return $res;
 }
 1;

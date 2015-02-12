@@ -195,7 +195,7 @@ sub plugin_ref_body
 		}
 		$title = &htmlspecialchars($name);
 		my $file  = "$::upload_dir/" . &::dbmname($page) . '_' . &::dbmname($name);
-		my $file2 = "$::upload_link/" . &::dbmname($page) . '_' . &::dbmname($name);
+		# my $file2 = "$::upload_dir/" . &::dbmname($page) . '_' . &::dbmname($name);
 		if (!-e $file) {
 			$params{_error} = 'file not found.' . $file;
 			return %params;
@@ -207,7 +207,8 @@ sub plugin_ref_body
 		if ($is_image) {
 			($width, $height) = getimagesize($name, $file);
 			$url2 = $url;
-			$url = $file2;
+		#	$url = $file2;
+			$url =($::download_dir ne '') ? "$::download_dir/" : "$::upload_dir/" . &::dbmname($page) . '_' . &::dbmname($name);
 		} else {
 			my ($sec, $min, $hour, $day, $mon, $year) = localtime((stat($file))[10]);
 			$info = sprintf("%d/%02d/%02d %02d:%02d:%02d %01.1fK",

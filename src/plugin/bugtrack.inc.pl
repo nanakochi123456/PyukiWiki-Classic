@@ -1,14 +1,14 @@
 #
-# PukiWiki BugTrackプラグイン
+# PyukiWiki BugTrackプラグイン
+# for Pyukiwiki http://nekyo.hp.infoseek.co.jp/
 #
-# CopyRight 2002 Y.MASUI GPL2
-# http:#masui.net/pukiwiki/ masui@masui.net
+# Based on Pukiwiki BugTrackプラグイン (c)Y.MASUI GPL2 http:#masui.net/pukiwiki/
+# Special Thanks! koma http://kamoland.com/
 # 
 # 変更履歴:
 #  2002.06.17: 作り始め
 #
-# $Id: bugtrack.inc.php,v 1.14 2003/05/17 11:18:22 arino Exp $
-#
+use strict;
 
 @bugtrack::priority_list = ('緊急','重要','普通','低');
 @bugtrack::state_list = ('提案','着手','CVS待ち','完了','保留','却下');
@@ -33,7 +33,10 @@ $bugtrack::submit = '追加';
 sub plugin_bugtrack_action
 {
 	if ($::form{mode} eq 'submit') {
-		&plugin_bugtrack_write($::form{base}, $::form{pagename}, $::form{summary}, $::form{name}, $::form{priority}, $::form{state}, $::form{category}, $::form{version}, $::form{body});
+		&plugin_bugtrack_write(
+			$::form{base}, $::form{pagename}, $::form{summary}, $::form{name}, $::form{priority},
+			$::form{state}, $::form{category}, $::form{version}, $::form{body}
+		);
 		exit;
 	}
 	return ('msg'=>$bugtrack::title, 'body'=>&plugin_bugtrack_print_form($::form{category}));
@@ -43,18 +46,18 @@ sub plugin_bugtrack_print_form
 {
 	my ($base, @category) = @_;
 	my $select_priority = '';
+	my $i;
 	for ($i = 0; $i < @bugtrack::priority_list; ++$i) {
 		my $selected = ($i < @bugtrack::lugin_priority_list - 1) ? '' : ' selected="selected"';
 		$select_priority .= "<option value=\"$bugtrack::priority_list[$i]\"$selected>$bugtrack::priority_list[$i]</option>\n";
 	}
 
-	$select_state = '';
+	my $select_state = '';
 	for ($i = 0; $i < @bugtrack::state_list; ++$i) {
 		$select_state .= "<option value=\"$bugtrack::state_list[$i]\">$bugtrack::state_list[$i]</option>\n";
 	}
 
 	my $encoded_category = '<input name="category" type="text" />';
-
 	if (@category != 0) {
 		$encoded_category = '<select name="category">';
 		foreach my $_category (@category) {
@@ -64,9 +67,8 @@ sub plugin_bugtrack_print_form
 		$encoded_category .= '</select>';
 	}
 
-	$s_base = &htmlspecialchars($base);
-
-	$body = <<"EOD";
+	my $s_base = &htmlspecialchars($base);
+	my $body = <<"EOD";
 <form action="$::script" method="post">
  <table border="0">
   <tr>
@@ -149,12 +151,12 @@ sub plugin_bugtrack_write
 
 	my $postdata = &plugin_bugtrack_template($base, $summary, $name, $priority, $state, $category, $version, $body);
 
-	$i = 0;
+	my $page;
+	my $i = 0;
 	do {
 		$i++;
 		$page = "$base/$i";
 	} while ($::database{$page});
-
 
 	if ($pagename == '') {
 		$::form{mypage} = $page;
@@ -183,7 +185,6 @@ sub plugin_bugtrack_convert
 	my @category = split(/,/, shift);
 	if (@category > 0) {
 		my $_base = &::unarmor_name(shift(@category));
-	#	$_base = get_fullname($_base, $base);
 		if ($::database{$_base}) {
 			$base = $_base;
 		}
@@ -197,84 +198,75 @@ sub plugin_bugtrack_pageinfo
 	my ($page, $no) = @_;
 
 	if (@_ == 1) {
-		if ($page =~ /\/([0-9]+)$/) {
-			$no = $1;
-		} else {
-			$no = 0;
-		}
+		$no = ($page =~ /\/([0-9]+)$/) ? $1 : 0;
 	}
+	my $body = $::database{$page};
 
-	$source = get_source($page);
-	if ($source[0] =~ /move\s*to\s*($WikiName|$InterWikiName|\[\[$BracketName\]\])/) {
-		return plugin_bugtrack_pageinfo(&::unarmor_name($1), $no);
+	if ($body =~ /move\s*to\s*($::WikiName|$::InterWikiName|\[\[$::BracketName\]\])/) {
+		return &plugin_bugtrack_pageinfo(&::unarmor_name($1), $no);
 	}
-
-	$body = join("\n",$source);
+	my ($summary, $name, $priority, $state, $category);
 	$summary = $name = $priority = $state = $category = 'test';
-	$itemlist = ();
-	foreach my $item (('summary','name','priority','state','category')) {
-		$itemname = '_bugtrack_plugin_'.$item;
-		#global $$itemname;
-		$itemname = $$itemname;
+	my @itemlist = ($bugtrack::summary, $bugtrack::name, $bugtrack::priority, $bugtrack::state, $bugtrack::category);
+	foreach my $itemname (@itemlist) {
 		if ($body =~ /-\s*$itemname\s*:\s*(.*)\s*/) {
-			if ($item == 'name') {
-				$$item = &htmlspecialchars(&::unarmor_name($1));
-			} else {
-				$$item = &htmlspecialchars($1);
+			if ($itemname eq $bugtrack::name) {
+				$name = &htmlspecialchars(&::unarmor_name($1));
+			} elsif ($itemname eq $bugtrack::summary) {
+				$summary = &::htmlspecialchars($1);
+			} elsif ($itemname eq $bugtrack::priority) {
+				$priority = &::htmlspecialchars($1);
+			} elsif ($itemname eq $bugtrack::state) {
+				$state = &::htmlspecialchars($1);
+			} elsif ($itemname eq $bugtrack::category) {
+				$category = &::htmlspecialchars($1);
 			}
 		}
 	}
 
 	if ($body =~ /\*([^\n]+)/) {
 		$summary = $1;
-		make_heading($summary);
 	}
-
-	return ($page, $no, $summary, $name, $priority, $state, $category);
+	return join('<>', ($page, $no, $summary, $name, $priority, $state, $category));
 }
 
 sub plugin_bugtrack_list_convert
 {
-	#global $script,$vars;
-	#global $bugtrack::priority, $bugtrack::state, $bugtrack::name;
-	#global $bugtrack::date, $bugtrack::category, $bugtrack::summary;
-	#global $bugtrack::state_sort,$bugtrack::state_list,$bugtrack::state_bgcolor;
+	my ($_page) = split(',', shift);
+	my $page = $::form{mypage};
 
-	$page = $::form{mypage};
-	if (func_num_args()) {
-		list($_page) = func_get_args();
-		$_page = get_fullname(&::unarmor_name($_page),$page);
-		if ($::database{$_page}) {
-			$page = $_page;
+	# 引数で指定されたページが存在したら、そのページを使用する。
+	$page = $_page if ($::database{$_page});
+
+	my @data = ();
+	my $pattern = "$page/";
+	my $pattern_len = length($pattern);
+	my ($line, $i);
+
+	foreach $page (keys %::database) {
+		if (index($page, $pattern) == 0 && substr($page, $pattern_len) =~ /[1-9][0-9]*/) {
+			$line = &plugin_bugtrack_pageinfo($page);
+			push(@data, $line);
 		}
 	}
 
-	$data = ();
-	$pattern = "$page/";
-	$pattern_len = strlen($pattern);
-	foreach my $page (get_existpages()) {
-		if (strpos($page,$pattern) == 0 and is_numeric(substr($page,$pattern_len))) {
-			my $line = &plugin_bugtrack_pageinfo($page);
-			array_push($data,$line);
-		}
+	my @table;
+	for ($i = 0; $i < @bugtrack::state_list; $i++) {
+		$table[$i] = '';
 	}
 
-	$table = ();
-	for ($i = 0; $i <= count($bugtrack::state_list) + 1; ++$i) {
-		$table[$i] = ();
-	}
-
-
-	foreach my $line ($data) {
-		list($page, $no, $summary, $name, $priority, $state, $category) = $line;
-		$page_link = make_pagelink($page);
-		$state_no = array_search($state,$bugtrack::state_sort);
-		if ($state_no == NULL or $state_no == FALSE) {
-			$state_no = @bugtrack::state_list;
+	foreach $line (@data) {
+		my ($page, $no, $summary, $name, $priority, $state, $category) = split(/<>/, $line);
+		my $state_no = $#bugtrack::state_list;
+		for ($i = 0; $i <= $#bugtrack::state_sort; $i++) {
+			if ($bugtrack::state_sort[$i] eq $state) {
+				$state_no = $i;
+				last;
+			}
 		}
-
-		$bgcolor = $bugtrack::state_bgcolor[$state_no];
-		$row = <<"EOD";
+		my $page_link = &::make_link($page);
+		my $bgcolor = $bugtrack::state_bgcolor[$state_no];
+		my $row = <<"EOD";
  <tr>
   <td style="background-color:$bgcolor">$page_link</td>
   <td style="background-color:$bgcolor">$state</td>
@@ -284,9 +276,10 @@ sub plugin_bugtrack_list_convert
   <td style="background-color:$bgcolor">$summary</td>
  </tr>
 EOD
-		$table[$state_no][$no] = $row;
+		$table[$state_no] .= "$no<>$row\n\n";
 	}
-	$table_html = <<"EOD";
+	my $table_html = <<"EOD";
+<table border="1">
  <tr>
   <th>&nbsp;</th>
   <th>$bugtrack::state</th>
@@ -296,12 +289,19 @@ EOD
   <th>$bugtrack::summary</th>
  </tr>
 EOD
-	for ($i = 0; $i <= @bugtrack::state_list; ++$i) {
-		ksort($table[$i],SORT_NUMERIC);
-		$table_html .= join("\n",$table[$i]);
-	}
 
-	return "<table border=\"1\">\n$table_html</table>";
+	for ($i = 0; $i <= $#bugtrack::state_list; $i++) {
+		my (%rowlist) = {};
+		foreach my $tab (split(/\n\n/, $table[$i])) {
+			my($no, $row) = split(/<>/, $tab);
+			$rowlist{$no} = $row;
+		}
+		my (@newkeys) = sort {$b <=> $a} keys(%rowlist);
+		foreach my $newkey (@newkeys) {
+			$table_html .= "$rowlist{$newkey}\n";
+		}
+	}
+	return $table_html . "</table>";
 }
 
 1;

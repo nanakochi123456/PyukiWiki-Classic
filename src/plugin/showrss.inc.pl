@@ -9,6 +9,7 @@
 # Return:LF Code=Shift-JIS 1TAB=4Spaces
 ######################################################################
 use strict;
+#use warnings;
 
 sub plugin_showrss_inline
 {
@@ -17,7 +18,7 @@ sub plugin_showrss_inline
 
 sub plugin_showrss_convert
 {
-	my @arg = &func_get_args(shift);
+	my @arg = &::func_get_args(shift);
 	return "argument error." if (@arg <= 0);
 	my $rssuri   = $arg[0];
 	my $tmplname = (@arg >= 2) ? $arg[1] : "";
@@ -49,6 +50,7 @@ sub plugin_showrss_convert
 			close OUT;
 		}
 	} else {
+		return "cache";
 		# read_cache
 		my @line;
 		open(IN, "<$cachefile") || return "Can't read cache.";
@@ -116,7 +118,7 @@ EOD
 sub get_rss
 {
 	my ($fp) = @_;
-	my (@log, $sock, $sockaddr, $ip, $data);
+	my (@log, $data);
 	@log = <$fp>;
 	sleep(1);
 	close($fp);
