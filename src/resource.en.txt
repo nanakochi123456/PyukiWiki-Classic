@@ -60,3 +60,32 @@ vote_plugin_choice=Choice
 vote_plugin_votes=Vote
 
 attachbutton=Attach
+
+article_name=Name:
+article_subject=Title:
+article_btn=Post
+
+attach_msg_listpage=Attach File list
+attach_msg_listall=Attach File list at All Page
+attach_msg_file=Attach File
+attach_msg_maxsize=Max File Size is %s
+attach_msg_description=Discription
+attach_err_noexist=No Attach File
+attach_msg_info=Infomation
+attach_msg_page=Page
+attach_msg_filename=Regist File Name
+attach_msg_md5hash=MD5 Hash Value
+attach_msg_filesize=Size
+attach_msg_date=Date
+attach_msg_dlcount=Access Count
+attach_msg_delete=Is Delete?
+attach_msg_deleted=Delete This File.
+attach_err_delete=Can't Delete
+attach_btn_submit=Exec
+attach_msg_password=Password
+attach_msg_uploaded=Uploaded
+attach_err_password=Illigal Password
+attach_err_exceed=File Size too big
+attach_err_notfound=Can't Find file
+
+btn_upload=Upload

@@ -60,3 +60,34 @@ vote_plugin_choice=选择项
 vote_plugin_votes=投票
 
 attachbutton=附件
+
+attachbutton=添付
+
+article_name=名:
+article_subject=題名:
+article_btn=記事投稿
+
+attach_msg_listpage=添付File一覧
+attach_msg_listall=全Page添付File一覧
+attach_msg_file=添付File
+attach_msg_maxsize=MaxFileSize is %s
+attach_msg_description=詳細
+attach_err_noexist=No添付File
+attach_msg_info=添付File情報
+attach_msg_page=Page
+attach_msg_filename=格納File名
+attach_msg_md5hash=MD5Hash値
+attach_msg_filesize=Size
+attach_msg_date=登録日時
+attach_msg_dlcount=Access数
+attach_msg_delete=削除
+attach_msg_deleted=削除
+attach_err_delete=不削除
+attach_btn_submit=実行
+attach_msg_password=Password
+attach_msg_uploaded=Upload
+attach_err_password=Password不一致
+attach_err_exceed=FileSizeTooBig
+attach_err_notfound=FileNotFound
+
+btn_upload=Upload

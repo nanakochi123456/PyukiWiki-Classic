@@ -1,10 +1,8 @@
 ############################################################
-# img Plugin
+# img rˁ rnrb  
 # img.inc.pl
 # Copyright(c) 2004 Nekyo.
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-# v0.0.1 2004/04/23 Add Alt Option.
-# v0.0.0 xxxx/xx/xx ProtType
 # 1TAB=4Spaces
 
 sub plugin_img_convert {
@@ -12,7 +10,7 @@ sub plugin_img_convert {
 	my ($uri, $align, $alt) = split(/,/, $argv);
 	$uri   = trim($uri);
 	$align = trim($align);
-	$alt   = trim($alt);
+	$alt = trim($alt);
 
 	if ($align =~ /^(r|right)/i) {
 		$align = 'right';

@@ -23,7 +23,7 @@ sub plugin_vote_action
 	foreach (@lines) {
 		if (/^#vote\(([^\)]*)\)s*$/) {
 			if (++$vote_no != $::form{vote_no}) {
-				$postdata .= $_ . "\n";
+				$postdata .= $line;
 				next;
 			}
 			@args = split(/,/, $1);
@@ -49,7 +49,7 @@ sub plugin_vote_action
 			$postdata .= $vote_str;
 			$write = 1;
 		} else {
-			$postdata .= $_ . "\n";
+			$postdata .= $line;
 		}
 	}
 	if ($write) {

@@ -60,3 +60,32 @@ vote_plugin_choice=選択枝
 vote_plugin_votes=投票
 
 attachbutton=添付
+
+article_name=お名前:
+article_subject=題名:
+article_btn=記事の投稿
+
+attach_msg_listpage=添付ファイル一覧
+attach_msg_listall=全ページの添付ファイル一覧
+attach_msg_file=添付ファイル
+attach_msg_maxsize=アップロード可能最大ファイルサイズは %s です。 
+attach_msg_description=詳細
+attach_err_noexist=添付ファイルがありません。
+attach_msg_info=添付ファイルの情報
+attach_msg_page=ページ
+attach_msg_filename=格納ファイル名
+attach_msg_md5hash=MD5ハッシュ値
+attach_msg_filesize=サイズ
+attach_msg_date=登録日時
+attach_msg_dlcount=アクセス数
+attach_msg_delete=このファイルを削除します。
+attach_msg_deleted=ファイルを削除しました。
+attach_err_delete=削除できませんでした。
+attach_btn_submit=実行
+attach_msg_password=パスワード
+attach_msg_uploaded=アップロードしました。
+attach_err_password=パスワードが一致しません。
+attach_err_exceed=ファイルサイズが大きすぎます。
+attach_err_notfound=ファイルは見つかりません。
+
+btn_upload=アップロード

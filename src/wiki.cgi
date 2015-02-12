@@ -33,11 +33,10 @@ use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
-$::version = '0.1.0';
+$::version = '0.1.1';
 ##############################
-#
-# You MUST modify following '$modifier_...' variables.
-#
+# You MUST modify following initial file.
+
 require 'pyukiwiki.ini.cgi';
 
 ##############################
@@ -67,12 +66,8 @@ if ($::lang eq 'ja') {
 my $file_touch = "$::modifier_dir_data/touched.txt";
 my $file_resource = "$::modifier_dir_data/resource.$::lang.txt";
 my $file_conflict = "$::modifier_dir_data/conflict.txt";
-my $file_format = "$::modifier_dir_data/format.txt";
-
 my $url_stylesheet = "$::modifierlink_data/default.ja.css"; # wiki.css -> default.ja.css
 $::maxrecent = 50;
-my $cols = 80;
-my $rows = 20;
 ##############################
 #
 # You MAY modify following variables.
@@ -86,7 +81,7 @@ my $use_autoimg = 1; # automatically convert image URL into <img> tag.
 my $use_exists = 0; # If you can use 'exists' method for your DB.
 #my $use_FixedFrontPage = 0;
 ##############################
-my $InterWikiName = 'InterWikiName';
+my $interwikiName = 'InterWikiName';
 my $AdminChangePassword = 'AdminChangePassword';
 my $CompletedSuccessfully = 'CompletedSuccessfully';
 my $ErrorPage = 'ErrorPage';
@@ -120,22 +115,19 @@ my %fixedplugin = (
 );
 my %infobase;
 %::diffbase;
-my %interwiki;
+%::interwiki;
 ##############################
 my %page_command = (
 	$AdminChangePassword => 'adminchangepasswordform',
 );
 my %command_do = (
 	read => \&do_read,
-	edit => \&do_edit,
-	adminedit => \&do_adminedit,
 	adminchangepasswordform => \&do_adminchangepasswordform,
 	adminchangepassword => \&do_adminchangepassword,
 	write => \&do_write,
 	createresult => \&do_createresult,
 );
 
-my $plugin_dir = "./plugin/";
 $::counter_dir = "$::modifier_dir_data/counter/";
 $::counter_ext = '.count';
 my $lastmod;	# v0.0.9
@@ -157,14 +149,7 @@ sub main {
 	} else {
 		my $exec = 1;
 		if ($::form{cmd}) {
-			if (!$_plugined{$::form{cmd}}) {
-				my $path = $plugin_dir . $::form{cmd} . '.inc.pl';
-				if (-e $path) {
-					require $path;
-					$_plugined{$::form{cmd}} = 1;
-				}
-			}
-			if ($_plugined{$::form{cmd}} == 1) {
+			if (&exist_plugin($::form{cmd}) == 1) {
 				my $action = "\&plugin_" . $::form{cmd} . "_action";
 				my %ret = eval $action;
 				if (($ret{msg} ne '') && ($ret{body} ne '')) {
@@ -208,31 +193,6 @@ EOD
 </table>
 EOD
 	&print_footer($::form{mypage});
-}
-
-sub do_edit {
-	my ($page) = &unarmor_name(&armor_name($::form{mypage}));
-	&print_header($page);
-	if (not &is_editable($page)) {
-		&print_message($::resource{cantchange});
-	} elsif (&is_frozen($page)) {
-		&print_message($::resource{cantchange});
-	} else {
-		&print_editform($::database{$page}, &get_info($page, $::info_ConflictChecker), admin=>0);
-	}
-	&print_footer($page);
-}
-
-sub do_adminedit {
-	my ($page) = &unarmor_name(&armor_name($::form{mypage}));
-	&print_header($page);
-	if (not &is_editable($page)) {
-		&print_message($::resource{cantchange});
-	} else {
-		&print_message($::resource{passwordneeded});
-		&print_editform($::database{$page}, &get_info($page, $::info_ConflictChecker), admin=>1);
-	}
-	&print_footer($page);
 }
 
 sub do_adminchangepasswordform {
@@ -364,14 +324,19 @@ Content-type: text/html; charset=$::charset
     "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="$::lang">
 <head>
-    <meta http-equiv="Content-Language" content="$::lang">
-    <meta http-equiv="Content-Type" content="text/html; charset=$::charset">
-    <title>$escapedpage @{[&htmlspecialchars(&get_subjectline($page))]}</title>
-    <link rel="index" href="$::script?cmd=list">
-    <link rev="made" href="mailto:$::modifier_mail">
-    <link rel="stylesheet" href="$url_stylesheet" type="text/css" media="screen" charset="Shift_JIS" />
-    <link rel="stylesheet" href="blosxom.css" type="text/css" media="screen" charset="Shift_JIS" />
-    <link rel="stylesheet" href="print.ja.css" type="text/css" media="print" charset="Shift_JIS" />
+  <meta http-equiv="Content-Language" content="$::lang">
+  <meta http-equiv="Content-Type" content="text/html; charset=$::charset">
+  <title>$escapedpage @{[&htmlspecialchars(&get_subjectline($page))]}</title>
+  <link rel="index" href="$::script?cmd=list">
+  <link rev="made" href="mailto:$::modifier_mail">
+  <link rel="stylesheet" href="$url_stylesheet" type="text/css" media="screen" charset="Shift_JIS" />
+  <link rel="stylesheet" href="blosxom.css" type="text/css" media="screen" charset="Shift_JIS" />
+  <link rel="stylesheet" href="print.ja.css" type="text/css" media="print" charset="Shift_JIS" />
+EOD
+	if ($::extend_edit) {
+		print '<script type="text/javascript" src="./instag.js"></script>' . "\n";
+	}
+	print <<"EOD";
 </head>
 <body class="$bodyclass">
 <div id="header">
@@ -398,8 +363,8 @@ Content-type: text/html; charset=$::charset
    ? qq( | <a href="$::script?cmd=diff&amp;mypage=$cookedpage">$::resource{diffbutton}</a>)
    : qq()
  ]}
- @{[ (-f "$plugin_dir/attach.inc.pl")
-   ? qq( | <a href="$::script?cmd=attach&amp;mode=form&frompage=$cookedpage">$::resource{attachbutton}</a>)
+ @{[ (-f "$::plugin_dir/attach.inc.pl")
+   ? qq( | <a href="$::script?cmd=attach&amp;mypage=$cookedpage">$::resource{attachbutton}</a>)
    : qq()
  ]}
  ]
@@ -555,13 +520,16 @@ sub text_to_html {
 		} elsif (/^(\s+.*)$/) {
 			&back_push('pre', 1, \@saved, \@result);
 			push(@result, &htmlspecialchars($1)); # Not &inline, but &escape
-		} elsif (/^\,(.*?)[\x0D\x0A]*$/) {
-			&back_push('table', 1, \@saved, \@result, ' class="style_table" cellspacing="1" border="0"');
+		} elsif (/^([\,|\|])(.*?)[\x0D\x0A]*$/) {
+			&back_push('table', 1, \@saved, \@result,
+				' class="style_table" cellspacing="1" border="0"');
 			#######
 			# This part is taken from Mr. Ohzaki's Perl Memo and Makio Tsukamoto's WalWiki.
 			# XXXXX
-			my $tmp = "$1,";
-			my @value = map {/^"(.*)"$/ ? scalar($_ = $1, s/""/"/g, $_) : $_} ($tmp =~ /("[^"]*(?:""[^"]*)*"|[^,]*),/g);
+			my $delm = "\\$1";
+			my $tmp = ($1 eq ',') ? "$2$1" : "$2";
+			my @value = map {/^"(.*)"$/ ? scalar($_ = $2, s/""/"/g, $_) : $_}
+				($tmp =~ /("[^"]*(?:""[^"]*)*"|[^$delm]*)$delm/g);
 			my @align = map {(s/^\s+//) ? ((s/\s+$//) ? ' align="center"' : ' align="right"') : ''} @value;
 			my @colspan = map {($_ eq '==') ? 0 : 1} @value;
 			for (my $i = 0; $i < @value; $i++) {
@@ -629,10 +597,8 @@ sub inline {
 	$line =~ s|''([^']+?)''|<strong>$1</strong>|g;	# Bold
 	$line =~ s|%%%([^%]*)%%%|<ins>$1</ins>|g;		# Insert Line
 	$line =~ s|%%([^%]*)%%|<del>$1</del>|g;			# Delete Line
-
 	$line =~ s|\^\^([^\^]*)\^\^|<sup>$1</sup>|g;	# sup
 	$line =~ s|__([^_]*)__|<sub>$1</sub>|g;			# sub
-
 	$line =~ s|(\d\d\d\d-\d\d-\d\d \(\w\w\w\) \d\d:\d\d:\d\d)|<span class="date">$1</span>|g;	# Date
 	$line =~ s|~$|<br />|g;							# ~\n -> <br />
 	$line =~ s|^//.*$||g;							# Comment
@@ -712,7 +678,7 @@ sub make_link {
 			$cookedchunk = &encode($alias[1]);
 			$escapedchunk = &htmlspecialchars($alias[0]);
 			$chunk = $alias[1];
-		} elsif ($chunk =~ /(.+?):(.+)/ && !$interwiki{$1}) {
+		} elsif ($chunk =~ /(.+?):(.+)/ && !$::interwiki{$1}) {
 			$cookedchunk = &encode($2);
 			$escapedchunk = &htmlspecialchars($1);
 			$chunk = $2;
@@ -725,7 +691,7 @@ sub make_link {
 			}
 		} elsif ($chunk =~ /^$interwiki_name$/) {
 			my ($intername, $localname) = ($1, $2);
-			my $remoteurl = $interwiki{$intername};
+			my $remoteurl = $::interwiki{$intername};
 			if ($remoteurl) {
 				$remoteurl =~ s/\b(utf8|euc|sjis|ykwk|asis)\(\$1\)/&interwiki_convert($1, $localname)/e;
 				return qq(<a href="$remoteurl">$escapedchunk</a>);
@@ -789,9 +755,7 @@ sub init_form {
 		}
 	}
 
-	#
 	# $::form{cmd} is frozen here.
-	#
 
 	$::form{mymsg} = &code_convert(\$::form{mymsg},   $::kanjicode);
 	$::form{myname} = &code_convert(\$::form{myname}, $::kanjicode);
@@ -911,64 +875,6 @@ sub close_diff {
 	}
 }
 
-sub print_editform {
-	my ($mymsg, $conflictchecker, %mode) = @_;
-	my $frozen = &is_frozen($::form{mypage});
-
-	if ($::form{mypreview}) {
-		if ($::form{mymsg}) {
-			unless ($mode{conflict}) {
-				print qq(<h3>$::resource{previewtitle}</h3>\n);
-				print qq($::resource{previewnotice}\n);
-				print qq(<div class="preview">\n);
-				&print_content($::form{mymsg});
-				print qq(</div>\n);
-			}
-		} else {
-			print qq($::resource{previewempty});
-		}
-		$mymsg = &htmlspecialchars($::form{mymsg});
-	} else {
-		$mymsg = &htmlspecialchars($mymsg);
-	}
-
-	my $edit = $mode{admin} ? 'adminedit' : 'edit';
-	my $escapedmypage = &htmlspecialchars($::form{mypage});
-	my $escapedmypassword = &htmlspecialchars($::form{mypassword});
-
-	print <<"EOD";
-<form action="$::script" method="post">
-  @{[ $mode{admin} ? qq($::resource{frozenpassword} <input type="password" name="mypassword" value="$escapedmypassword" size="10"><br>) : "" ]}
-  <input type="hidden" name="myConflictChecker" value="$conflictchecker">
-  <input type="hidden" name="mypage" value="$escapedmypage">
-  <textarea cols="$cols" rows="$rows" name="mymsg">$mymsg</textarea><br />
-@{[
-  $mode{admin} ?
-  qq(
-  <input type="radio" name="myfrozen" value="1" @{[$frozen ? qq(checked="checked") : ""]}>$::resource{frozenbutton}
-  <input type="radio" name="myfrozen" value="0" @{[$frozen ? "" : qq(checked="checked")]}>$::resource{notfrozenbutton}<br>)
-  : ""
-]}
-@{[
-  $mode{conflict} ? "" :
-  qq(
-    <input type="checkbox" name="mytouch" value="on" checked="checked">$::resource{touch}<br>
-    <input type="submit" name="mypreview_$edit" value="$::resource{previewbutton}">
-    <input type="submit" name="mypreview_write" value="$::resource{savebutton}"><br>
-  )
-]}
-</form>
-EOD
-	unless ($mode{conflict}) {
-		# Show the format rule.
-		open(FILE, $file_format) or &print_error("($file_format)");
-		my $content = join('', <FILE>);
-		&code_convert(\$content, $::kanjicode);
-		close(FILE);
-		print &text_to_html($content, toc=>0);
-	}
-}
-
 sub print_passwordform {
 	print <<"EOD";
 <form action="$::script" method="post">
@@ -1078,7 +984,10 @@ sub conflict {
 	close(FILE);
 	&print_header($page);
 	&print_content($content);
-	&print_editform($rawmsg, $::form{myConflictChecker}, frozen=>0, conflict=>1);
+
+	if (&exist_plugin('edit') == 1) {
+		print &editform($rawmsg, $::form{myConflictChecker}, frozen=>0, conflict=>1);
+	}
 	&print_footer($page);
 	return 1;
 }
@@ -1086,23 +995,17 @@ sub conflict {
 sub get_now {
 	my (@week) = qw(Sun Mon Tue Wed Thu Fri Sat);
 	my ($sec, $min, $hour, $day, $mon, $year, $weekday) = localtime(time);
-	$year += 1900;
-	$mon++;
-	$mon = "0$mon" if $mon < 10;
-	$day = "0$day" if $day < 10;
-	$hour = "0$hour" if $hour < 10;
-	$min = "0$min" if $min < 10;
-	$sec = "0$sec" if $sec < 10;
 	$weekday = $week[$weekday];
-	return "$year-$mon-$day ($weekday) $hour:$min:$sec";
+	return sprintf("%d-%02d-%02d ($weekday) %02d:%02d:%02d",
+		$year + 1900, $mon + 1, $day, $hour, $min, $sec);
 }
 
 # [[YukiWiki http://www.hyuki.com/yukiwiki/wiki.cgi?euc($1)]]
 sub init_InterWikiName {
-	my $content = $::database{$InterWikiName};
+	my $content = $::database{$interwikiName};
 	while ($content =~ /\[\[(\S+) +(\S+)\]\]/g) {
 		my ($name, $url) = ($1, $2);
-		$interwiki{$name} = $url;
+		$::interwiki{$name} = $url;
 	}
 }
 
@@ -1169,27 +1072,40 @@ sub is_frozen {
 	return (&get_info($page, $info_IsFrozen)) ? 1 : 0;
 }
 
+#
+# require plugin with flag control;
+#
+sub exist_plugin {
+	my ($plugin) = @_;
+
+	if (!$_plugined{$plugin}) {
+		my $path = $::plugin_dir . $plugin . '.inc.pl';
+		if (-e $path) {
+			require $path;
+			$_plugined{$1} = 1;	# Pyuki
+			return 1;
+		} else {
+			$path = $::plugin_dir . $plugin . '.pl';
+			if (-e $path) {
+				require $path;
+				$_plugined{$1} = 2;	# Yuki
+				return 2;
+			}
+		}
+		return 0;
+	}
+	return $_plugined{$plugin};
+}
+
 sub embedded_to_html {
 	my $embedded = shift;
 
 	if ($embedded =~ /$embed_plugin/) {
-		if (!$_plugined{$1}) {
-			my $path = $plugin_dir . $1 . '.inc.pl';
-			if (-e $path) {
-				require $path;
-				$_plugined{$1} = 1;	# Pyuki
-			} else {
-				$path = $plugin_dir . $1 . '.pl';
-				if (-e $path) {
-					require $path;
-					$_plugined{$1} = 2;	# Yuki
-				}
-			}
-		}
+		my $exist = &exist_plugin($1);
 		my $action = '';
-		if ($_plugined{$1} == 1) {
+		if ($exist == 1) {
 			$action = "\&plugin_" . $1 . "_convert('$3')";
-		} elsif ($_plugined{$1} == 2) {
+		} elsif ($exist == 2) {
 			$action = "\&$1::plugin_block('$3');";
 		}
 		if ($action ne '') {
@@ -1210,28 +1126,16 @@ sub embedded_inline {
 			$arg .= $5;
 		}
 
-		if (!$_plugined{$1}) {
-			my $path = $plugin_dir . $1 . '.inc.pl';
-			if (-e $path) {
-				require $path;
-				$_plugined{$1} = 1;	# Pyuki
-			} else {
-				$path = $plugin_dir . $1 . '.pl';
-				if (-e $path) {
-					require $path;
-					$_plugined{$1} = 2;	# Yuki
-				}
-			}
-		}
+		my $exist = &exist_plugin($1);
 		my $action = '';
-		if ($_plugined{$1} == 1) {
+		if ($exist == 1) {
 			$action = "\&plugin_" . $1 . "_inline('$arg')";
-		} elsif ($_plugined{$1} == 2) {
+		} elsif ($exist == 2) {
 			$action = "\&$1::plugin_inline('$arg');";
 		}
 		if ($action ne '') {
 			$_ = eval $action;
-			if ($_) { return $_; }
+			return $_ if ($_);
 		}
 	}
 	return &unescape($embedded);
