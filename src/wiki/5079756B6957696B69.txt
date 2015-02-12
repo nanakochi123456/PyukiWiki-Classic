@@ -1,0 +1,6 @@
+** PyukiWiki は
+PyukiWiki(ぴゅきうぃき) とは結城さんの作られたYukiwikiをベースにして、
+Pukiwiki風に書式拡張した Wiki です。~
+(perl の cgi で動作します。)~
+Yukiwiki2.1.0 をベースに改造されています。~
+みなさんもボイジャーの様に PyukiWiki を探査して下さい。

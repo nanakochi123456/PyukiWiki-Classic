@@ -1,6 +1,11 @@
-# br plugin for YukiWiki & PyukiWiki
-# Author Nekyo.(http://nekyo.hp.infoseek.co.jp/)
-# v1.0 2004/05/26
+##
+# 文章中で改行を行う。
+# :書式|
+#  #br
+#  &br;
+# @author Nekyo.(http://nekyo.hp.infoseek.co.jp/)
+# @version 1.00
+
 use strict;
 package br;
 
@@ -15,12 +20,11 @@ sub plugin_inline {
 sub plugin_usage {
 	return {
 		name => 'br',
-		version => '1.0',
+		version => '1.00',
 		author => 'Nekyo',
 		syntax => '&br',
 		description => 'line break.',
 		example => '&br',
 	};
 }
-
 1;

@@ -1,12 +1,11 @@
 ##############################
 # pyukiwiki.ini.cgi
 #
-# Copyright (C) 2004 Nekyo.
+# Copyright (C) 2004 by Nekyo.
 # http://nekyo.hp.infoseek.co.jp/
 #
 # 1TAB=4Spaces
 ##############################
-use strict;
 
 # 言語
 $::lang = "ja";       # ja:日本語/en:英語(参考)
@@ -29,29 +28,32 @@ $::cache_dir   = "$::data_home/cache";		# 一時用
 $::upload_dir  = "$::data_home/attach";		# 添付用
 $::counter_dir = "$::data_home/counter";	# カウンタ用
 $::plugin_dir  = "$::data_home/plugin";		# プラグイン用
-$::skin_dir    = "$::data_home/skin";		# スキン cgi用
+$::skin_dir    = "$::data_home/skin";		# スキン用
 $::info_dir    = "$::data_home/info";		# 情報用
-$::res_dir     = "$::data_home/resource";	# リソース
-$::js_dir      = "$::skin_dir/js";			# JavaScript用物理パス
-$::css_dir     = "$::skin_dir/css";			# CSS用物理パス
+$::res_dir     = "$::data_home/resource";
+$::js_dir      = "$::skin_dir/js";
+$::css_dir     = "$::skin_dir/css";
 
-$::skin_uri    = "$::uri_home/skin";		# スキン 非cgi用
+$::skin_uri    = "$::uri_home/skin";
 $::image_dir   = "$::uri_home/image";		# 画像用
-$::js_uri      = "$::skin_uri/js";			# JavaScript用論理パス(相対パスなら同じ?)
-$::css_uri     = "$::skin_uri/css";			# CSS用論理パス
+$::js_uri      = "$::skin_uri/js";
+$::css_uri     = "$::skin_uri/css";
 
-# スキンファイル(省略すれば pyukiwiki.skin.cgi が使われる。
-#$::skin_file = "pyukiwiki.skin.cgi";
+# スキンファイル(省略で pyukiwiki.skin.cgi が仕様される。)
+#$::skin_file = 'pyukiwiki.skin.cgi';
+
+# プロキシ設定(あれば)
+#$proxy_host = '';
+#$proxy_port = 8080;
 
 # 修正者情報
-$::modifier = 'Your name';					# 修正者名
-$::modifierlink = 'http://your.site.url/'; # 修正者URI
+$::modifier = 'You Name';				# 修正者名
+$::modifierlink = 'Your Site Address';	# 修正者URI
 $::modifier_mail = '';					# 修正者メールアドレス
 
 # デフォルトページ名
 $::script        = 'index.cgi';
 $::FrontPage     = 'FrontPage';
-$::RecentChanges = 'RecentChanges';
 $::CreatePage    = 'CreatePage';
 $::IndexPage     = 'IndexPage';
 $::MenuBar       = 'MenuBar';
@@ -59,22 +61,17 @@ $::Header        = ':Header';
 $::Footer        = ':Footer';
 $::rule_page     = "整形ルール";
 
-# デフォルトの凍結パスワード(ここを変更して下さい pass 側を変更 AA はそのまま)
+# 管理者パスワードの設定 pass 側を修正 AA はそのまま。
 $::adminpass = crypt("pass", "AA");
 
 # RSS情報
-$::modifier_rss_title       = "PyukiWiki $::version";
-$::modifier_rss_link        = $::modifierlink;
+$::modifier_rss_title = "PyukiWiki $::version";
 $::modifier_rss_description = 'This is PyukiWiki.';
-
-# Proxy設定(必要ならば)
-#$::proxy_host = 'xxx.xxx.xxx.xxx';
-#$::proxy_port = 8080;
+#$::modifier_rss_link = 'http://nekyo.hp.infoseek.co.jp/';	# 設定されているとrssのリンクが全てこれになる。
 
 # 表示設定
-$::usefacemark    = 1; # フェースマークを 1:使う/0:使わない。
-$::use_popup      = 0; # リンク先を 1:ポップアップ/0:ページ切替
-$::last_modified  = 2; # 最終更新日 0:非表示/1:上に表示/2:下に表示
+$::use_popup = 0;     # リンク先を 1:ポップアップ/0:ページ切替
+$::last_modified = 2; # 最終更新日 0:非表示/1:上に表示/2:下に表示
 $::lastmod_prompt = 'Last-modified:'; # 最終更新日のプロンプト
 
 $::enable_convtime = 1; # コンバートタイム 1:表示/0:非表示;
@@ -92,7 +89,6 @@ $::extend_edit = 1; # 拡張機能(JavaScript) 1:使用/0:未使用
 $::file_uploads = 2;       # 添付を 0:使わない/1:使う/2:認証付きで使う
 $::max_filesize = 1000000; # アップロードファイルの最大数
 
-#
 $::_symbol_anchor = '&dagger;';
 $::maxrecent = 50;
 
@@ -103,22 +99,17 @@ $::non_list = '^\:';
 #$::gzip_path = '/bin/gzip -1';
 $::gzip_path = '';
 
-##
-# 拡張JS設定 この設定があると、指定されたプラグインがあるページで、
-# 自動的に、ヘッダー部が拡張される。
-#$::extend_js{プラグイン}{'js'} = "(METAタグで記述するJSのURL)"; (省略化)
-#$::extend_js{プラグイン}{'charset'} = 'UTF-8';  JSのキャラセット (省略化)
-#$::extend_js{プラグイン}{'onload'} = 'オンロード関数'; (省略化)
-#$::extend_js{プラグイン}{'onunload'} = 'オンアンロード関数'; (省略化)
+# これが指定されているとRSSのリンクがこれになる。
+#$::rssurl = "http://nekyo.hp.infoseek.co.jp/rss.shtml";
 
 ##
-# 入力拒否文字列
-# aaa bbb を拒否したい場合は以下の様に改行して記述。
-#$::disablewords = "aaa
-#bbb";
+# フィルター関連
+#$::filter_flg = 1;	# 1でフィルター機能を有効にする。
+#$::chk_uri_count = 20;	# 1つの投稿ホームページアドレスが20個以上あるとスパムとみなす。
+#$::chk_jp_only = 1;	# 日本語が一時も入っていないとスパムとみなす。
+#$::deny_log = "$::cache_dir/deny.log";	# ログファイル。指定されているとログを取る。無くても問題ない。
 
-$::filter_flg = 0;		# 1:スパムフィルターを有効にする。
-#$::chk_uri_count = 20;	# 一度のメッセージに投稿される https?:// の上限を指定する。
-#$::chk_jp_only = 1;	# カタカナかひらがなが含まれていなければNGとする。
+# 禁止文字列を指定。複数文字は改行で連結
+#$::disablewords = "poker";
 
 1;

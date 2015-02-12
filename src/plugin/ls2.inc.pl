@@ -1,23 +1,20 @@
 ########################/
-# PyukiWiki - Yet another WikiWikiWeb clone.
-# ls2.inc.pl by Nekyo
-# v0.1 2005/04/01 encode バグ Fix Tnx:Junichiさん
-# v0.0 2004/11/01 簡易版 title,reverse 対応、その他は非対応
-# based on ls2.inc.php by arino
-#
-#*プラグイン ls2
-#配下のページの見出し(*,**,***)の一覧を表示する
-#
-#*Usage
-# #ls2(パターン[,パラメータ])
-#
-#*パラメータ
-#-パターン(最初に指定) 省略するときもカンマが必要
-#-title:見出しの一覧を表示する
-#-include:インクルードしているページの見出しを再帰的に列挙する
-#-link:actionプラグインを呼び出すリンクを表示
-#-reverse:ページの並び順を反転し、降順にする
-#-compact:
+# 配下のページの見出し(*,**,***)の一覧を表示する
+# :書式|
+#  #ls2(パターン[,パラメータ])
+# -パターン(最初に指定)
+# -title:見出しの一覧を表示する
+# -reverse:ページの並び順を反転し、降順にする
+
+# 以下は未対応
+# -include:インクルードしているページの見出しを再帰的に列挙する
+# -link:actionプラグインを呼び出すリンクを表示
+# -compact:
+
+# @author Nekyo.
+# @version v0.1 2005/04/01 encode バグ Fix Tnx:Junichiさん
+# @version v0.0 2004/11/01 簡易版 title,reverse 対応、その他は非対応
+# @see based on ls2.inc.php by arino
 
 use strict;
 
@@ -59,7 +56,7 @@ EOD
 				chomp;
 				if (/^(\*{1,3})(.+)/) {
 					&back_push('ul', length($1), \@tocsaved, \@tocresult);
-					push(@tocresult, qq( <li><a href="$::script?$page#i$tocnum">@{[&htmlspecialchars($2)]}</a></li>\n));	
+					push(@tocresult, qq( <li><a href="$::script?$page#i$tocnum">@{[&escape($2)]}</a></li>\n));	
 					$tocnum++;
 				}
 			}

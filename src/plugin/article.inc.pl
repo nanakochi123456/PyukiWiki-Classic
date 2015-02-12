@@ -1,8 +1,12 @@
+##
+# 簡易掲示板を設置する。
+# :書式|
+#  #article 
+
 # PyukiWiki BBS風プラグイン
 # 2007/01/15 スパム対策
 # 2004/06/12 Nekyo(c) http://nekyo.hp.infoseek.co.jp/
 # Based on OKAWARA,Satoshi's PukiWiki Plugin
-#
 use strict;
 
 $article::cols = 70;						# テキストエリアのカラム数
@@ -27,13 +31,13 @@ sub plugin_article_action
 	&::spam_filter($postdata, 1);
 	my $name = $_no_name;
 	if ($::form{name} ne '') {
-		&::spam_filter($::form{name}, 0);	# 日本語チェックは行わない。
+		#&::spam_filter($::form{name}, 0);	# 日本語チェックは行わない。
 		$name = $article::name_format;
 		$name =~ s/\$name/$::form{name}/g;
 	}
 	my $subject = $article::subject_format;
 	if ($::form{subject} ne '') {
-		&::spam_filter($::form{subject}, 0);	# 日本語チェックは行わない。
+		#&::spam_filter($::form{subject}, 0);	# 日本語チェックは行わない。
 		$subject =~ s/\$subject/$::form{subject}/g;
 	} else {
 		$subject =~ s/\$subject/$_no_subject/g;

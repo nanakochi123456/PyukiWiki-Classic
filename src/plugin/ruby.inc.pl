@@ -1,11 +1,8 @@
-###############################################
-# ruby僾儔僌僀儞
-# ruby.inc.pl
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-# Based on ruby.inc.php
-# 1TAB=4Spaces
-
+##
+# 矢机误にルビをふる。
+# :今及|
+#  &ruby(ルビ){ルビをふる矢机误};
+# @author Nekyo.
 sub plugin_ruby_inline {
 	@arg = split(/,/, shift);
 	my $ruby = $arg[0];

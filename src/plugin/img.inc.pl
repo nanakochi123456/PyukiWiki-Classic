@@ -1,3 +1,11 @@
+##
+# 画像を表示する。
+# :書式|
+#  #img(画像のURI[[,書式],altコメント])
+# 書式：r,right(右寄せ) or l,left(左寄せ) or module(index.cgi からの呼び出し)
+# or それ以外(クリア)~
+# v0.1.6b よりこの関数を index.cgi の img 変換でも呼び出すよう修正。(必須)
+
 ######################################################################
 # img.inc.pl
 # PyukiClassic v 0.1.6b or laiter
@@ -8,13 +16,6 @@
 ######################################################################
 use strict;
 
-##
-# imgコンバート
-# v0.1.6b よりこの関数を index.cgi の img 変換でも呼び出すよう修正
-# @param $uri 画像の URI
-# @param $align r,right(右寄せ) or l,left(左寄せ) or module(index.cgi からの呼び出し) or それ以外(クリア)
-# @param $alt(コメント)
-# @return img タグ
 sub plugin_img_convert {
 	my ($uri, $align, $alt) = split(/,/, shift);
 	$uri   = &trim($uri);

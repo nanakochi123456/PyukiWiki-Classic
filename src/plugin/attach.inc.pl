@@ -1,11 +1,10 @@
-########################/
-# PyukiWiki - Yet another WikiWikiWeb clone.
-#
-# attach.inc.pl
-#
-# based on PukiWiki attach.inc.php
-
-#use strict;
+##
+# ページの添付ファイル一覧を表示し、ファイル添付のための入力フォームを設置する。
+# :書式|
+#  #attach([nolist][,noform])
+# -nolist - 添付ファイルの一覧を表示しない。省略時は表示。
+# -noform - ファイル添付フォームを表示しない。省略時は表示。
+use strict;
 use CGI qw(:standard);
 use Digest::MD5 qw(md5_hex);
 

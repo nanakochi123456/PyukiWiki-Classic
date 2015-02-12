@@ -1,12 +1,11 @@
-#################################################
-# vote プラグイン
-# vote.inc.pl
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-# 2004/12/06 v0.2 不具合修正版
-# 1TAB=4Spaces
-#
+##
+# 簡易投票フォームの表示
+# :書式|
+#  #vote(選択肢1[1の投票数][,選択肢2[2の投票数]…[,選択肢n[nの投票数]]])
+# 選択肢1〜nに投票項目を指定する。
 
+# @auther Nekyo.(http://nekyo.hp.infoseek.co.jp)
+# @version 0.2 不具合修正版
 use strict;
 
 sub plugin_vote_action

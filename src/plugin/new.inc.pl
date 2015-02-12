@@ -1,13 +1,13 @@
-############################################################
-# new ƒvƒ‰ƒOƒCƒ“
-# new.inc.pl
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-#
+##
+# Æü»þ¤¬µ¬Äê¤ÎÆüÉÕ°ÊÆâ¤Î¾ì¹ç¤ËNew¤ÈÉ½¼¨¤¹¤ë¡£
+# :½ñ¼°|
+#  &new(Æü»þ);
+# 5Æü°ÊÆâ¤Î¾ì¹ç¤Ë New¡¢1Æü°ÊÆâ¤Î¾ì¹ç¤Ë New! ¤òÉ½¼¨¤¹¤ë¡£
+# @author Nekyo. for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 
 sub plugin_new_inline {
 	my $date = shift;
-	if ($date eq '') { return ''; }
+	return '' if ($date eq '');
 
 	my $retval = $date;
 	my ($mday, $mon, $year) = (localtime())[3..5];

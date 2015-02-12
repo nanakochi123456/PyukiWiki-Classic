@@ -1,14 +1,14 @@
-##############################################################
-# contents.inc.pl - This is PyukiWiki, yet another Wiki clone.
-#
-# $Id$ Last Modified 2006/06/21
-#
-# for PyukiWiki
-# Copyright (C) 2004-2006 by Nekyo, PyukiWiki Developers Team. License:GPL
-# http://nekyo.hp.infoseek.co.jp/
-#
-# 1TAB=4Spaces
-##############################################################
+##
+# ページ中の見出し一覧を表示する。
+# :書式|
+#  #contents
+# pyukiwiki独自拡張~
+#  #contents([ページ])
+# で指定のページの見出し一覧を表示する。
+
+# @author nekyo.
+# @version 1.01
+# @license:GPL
 use strict;
 
 sub plugin_contents_convert {

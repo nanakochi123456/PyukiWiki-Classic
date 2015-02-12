@@ -15,7 +15,7 @@
 # modify it under the same terms as Perl itself.
 # Return:LF Code=EUC-JP 1TAB=4Spaces
 #######################################
-$::version = '0.1.8';
+$::version = '0.1.9';
 
 ##
 # ¥é¥¤¥Ö¥é¥ê
@@ -38,10 +38,6 @@ eval 'use Socket';
 eval 'use FileHandle';
 
 use Jcode;
-#use Fcntl;
-# Check if the server can use 'AnyDBM_File' or not.
-# eval 'use AnyDBM_File';
-# my $error_AnyDBM_File = $@;
 
 ##
 # ÀßÄê¥Õ¥¡¥¤¥ëÆÉ¹þ¤ß
@@ -102,7 +98,6 @@ my $info_IsFrozen = 'IsFrozen';
 my $info_AdminPassword = 'AdminPassword';
 my %fixedpage = (	# ¸ÇÄê¥Ú¡¼¥¸
 	$ErrorPage => 1,
-	$::RecentChanges => 1,
 	$AdminChangePassword => 1,
 	$CompletedSuccessfully => 1,
 );
@@ -125,7 +120,6 @@ $::conv_start = (times)[0] if ($::enable_convtime != 0);	# ¥³¥ó¥Ð¡¼¥È¥¿¥¤¥à½é´ü²
 
 ##
 # ÊÑ¿ôÄêµÁ
-my %infobase;
 %::diffbase;
 %::interwiki;
 my $lastmod;	# ºÇ½ª¹¹¿·Æü
@@ -138,7 +132,16 @@ exit(0);
 # ¥á¥¤¥ó½èÍý
 sub main {
 	%::resource = &read_resource("$::res_dir/resource.$::lang.txt");
-	# &check_modifiers;
+
+	# ¥Ç¥£¥ì¥¯¥È¥ê¸¡ºº
+	my $err = '';
+	$err .= "Directory is not found or not writable ($::data_dir)<br />\n" if (!-w $::data_dir);
+	$err .= "Directory is not found or not writable ($::diff_dir)<br />\n" if (!-w $::diff_dir);
+	$err .= "Directory is not found or not writable ($::cache_dir)<br />\n" if (!-w $::cache_dir);
+	$err .= "Directory is not found or not writable ($::counter_dir)<br />\n" if (!-w $::counter_dir);
+	$err .= "Directory is not found or not writable ($::upload_dir)<br />\n" if (!-w $::upload_dir);
+	&print_error($err) if ($err ne '');
+
 	&open_db;
 	&init_form;
 	&init_InterWikiName;
@@ -176,6 +179,8 @@ sub skinex {
 	$skin::editable      = 0;
 	$skin::admineditable = 0;
 
+#	$skin::body =~ s/\n?#freeze\r?\n//g;
+
 	if (lc $::form{cmd} eq 'read' || lc $::form{cmd} eq 'write') {
 		if (&is_frozen($page)) {
 			$skin::admineditable = 1;
@@ -196,7 +201,11 @@ sub skinex {
 	}
 	$skin::basehref .= $ENV{'SCRIPT_NAME'};
 	if ($skin::basehref ne '') {
-		$skin::basehref = '<base href="' . $skin::basehref . '?' . &rawurlencode($page) . "\" />\n";
+		if ($::IndexPage eq $page) {
+			$skin::basehref = '<base href="' . $skin::basehref . "?cmd=list\" />\n";
+		} else {
+			$skin::basehref = '<base href="' . $skin::basehref . '?' . &rawurlencode($page) . "\" />\n";
+		}
 	}
 
 	# add by nanami. Custom by Nekyo.
@@ -413,7 +422,6 @@ sub do_write {
 	} else {
 		&send_mail_to_admin($::form{mypage}, "Delete");
 		delete $::database{$::form{mypage}};
-		delete $infobase{$::form{mypage}};
 		&update_recent_changes if ($::form{mytouch});
 		&skinex($::form{mypage}, &message($::resource{deleted}), 0);
 	}
@@ -454,6 +462,7 @@ sub text_to_html {
 	my $verbatim;
 	my $tocnum = 0;
 	my (@saved, @result);
+	my $skip;
 	unshift(@saved, "</p>");
 	push(@result, "<p>");
 
@@ -472,6 +481,7 @@ sub text_to_html {
 		# non-verbatim follows.
 		push(@result, shift(@saved)) if (@saved and $saved[0] eq '</pre>' and /^[^ \t]/);
 
+		$skip = 0;
 		my $c = ord($_);	# ºÇ½é¤ÎÊ¸»ú¤Î¥¢¥¹¥­¡¼ÃÍ
 		if ($c == 42) {		# ¿ôÃÍ¤Ë¤è¤ëÈæ³Ó(Ê¸»úÎó¤è¤êÁá¤¤) ord('*')
 			if (/^(\*{1,3})(.+)/) {
@@ -649,8 +659,12 @@ sub text_to_html {
 				push(@result, splice(@saved), "<font color=\"$1\">$2</font>");
 				next;
 			}
+		} elsif ($c == ord('#')) {
+			if ($_ eq '#freeze') {	# ¥¹¥­¥Ã¥×¤¹¤ë¥×¥é¥°¥¤¥ó
+				$skip = 1;
+			}
 		}
-		push(@result, &inline($_));
+		push(@result, &inline($_)) if ($skip == 0);
 	}
 	push(@result, splice(@saved));
 	return join("\n", @result);
@@ -868,20 +882,28 @@ sub init_form {
 ##
 # ºÇ½ª¹¹¿·Æü¹¹¿·
 sub update_recent_changes {
-	my $update = "- @{[&get_now]} @{[&armor_name($::form{mypage})]} @{[&get_subjectline($::form{mypage})]}";
-	my @oldupdates = split(/\r?\n/, $::database{$::RecentChanges});
+	my $update = time . "\t$::form{mypage}\n";
+	my $recentchanges = $::cache_dir . '/recent.dat';
+
+	open(fp, "<$recentchanges");
+	my @oldupdates = <fp>;
+	close(fp);
+
 	my @updates;
 	foreach (@oldupdates) {
-		/^\- \d\d\d\d\-\d\d\-\d\d \(...\) \d\d:\d\d:\d\d (\S+)/;	# date format.
-		my $name = &unarmor_name($1);
+		/(\d+)\t(\S+)/;	# date format.
+		my $name = &unarmor_name($2);
 		if (&is_exist_page($name) and ($name ne $::form{mypage})) {
 			push(@updates, $_);
 		}
 	}
 	unshift(@updates, $update) if (&is_exist_page($::form{mypage}));
 	splice(@updates, $::maxrecent + 1);
-	$::database{$::RecentChanges} = join("\n", @updates);
+	open(fp, ">$recentchanges");
+	print(fp join('', @updates));
+	close(fp);
 }
+
 
 sub get_subjectline {
 	my ($page, %option) = @_;
@@ -923,39 +945,30 @@ EOD
 }
 
 ##
-# DB¤Î¥ª¡¼¥×¥ó ¢¨¥â¥¸¥å¡¼¥ë²½¤¹¤ë¤ÈÃÙ¤¯¤Ê¤ë¡£
+# DB¥ª¡¼¥×¥ó ¢¨¥â¥¸¥å¡¼¥ë²½¤¹¤ë¤ÈÃÙ¤¯¤Ê¤ë¡£
 sub open_db {
 	if ($modifier_dbtype eq 'dbmopen') {
-		dbmopen(%::database, $::data_dir, 0666) or &print_error("(dbmopen) $::data_dir");
-		dbmopen(%infobase,   $::info_dir, 0666) or &print_error("(dbmopen) $::info_dir");
-#	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-#		tie(%::database, "AnyDBM_File", $::data_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::data_dir");
-#		tie(%infobase,   "AnyDBM_File", $::info_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::info_dir");
+		dbmopen(%::database, $::data_dir, 0666);
 	} else {
-		tie(%::database, $modifier_dbtype, $::data_dir) or &print_error("(tie $modifier_dbtype) $::data_dir");
-		tie(%infobase,   $modifier_dbtype, $::info_dir) or &print_error("(tie $modifier_dbtype) $::info_dir");
+		tie(%::database, $modifier_dbtype, $::data_dir);
 	}
 }
 
 ##
-# DB¤Î¥¯¥í¡¼¥º
+# DB¥¯¥í¡¼¥º
 sub close_db {
 	if ($modifier_dbtype eq 'dbmopen') {
 		dbmclose(%::database);
-		dbmclose(%infobase);
 	} else {
 		untie(%::database);
-		untie(%infobase);
 	}
 }
 
 sub open_diff {
 	if ($modifier_dbtype eq 'dbmopen') {
-		dbmopen(%::diffbase, $::diff_dir, 0666) or &print_error("(dbmopen) $::diff_dir");
-#	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-#		tie(%::diffbase, "AnyDBM_File", $::diff_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::diff_dir");
+		dbmopen(%::diffbase, $::diff_dir, 0666);
 	} else {
-		tie(%::diffbase, $modifier_dbtype, $::diff_dir) or &print_error("(tie $modifier_dbtype) $::diff_dir");
+		tie(%::diffbase, $modifier_dbtype, $::diff_dir);
 	}
 }
 
@@ -1015,6 +1028,8 @@ sub is_bracket_name {
 
 ##
 # ¥Ú¡¼¥¸Ì¾¤òDB¥Õ¥¡¥¤¥ëÌ¾¤ËÊÑ´¹
+# @param $name ¥Ú¡¼¥¸Ì¾
+# @return DB¥Õ¥¡¥¤¥ëÌ¾
 sub dbmname {
 	my ($name) = @_;
 	$name =~ s/(.)/uc unpack('H2', $1)/eg;
@@ -1056,6 +1071,7 @@ sub conflict {
 
 ##
 # ¸½ºß»þ¹ï¼èÆÀ
+# @return Y-m-d (D) H:i:s
 sub get_now {
 	return date("Y-m-d (D) H:i:s");
 }
@@ -1095,27 +1111,42 @@ sub interwiki_convert {
 
 ##
 # ÉÕ²Ã¾ðÊó¼èÆÀ
+# @param $page ¥Ú¡¼¥¸
+# @param $key ¥­¡¼
+# @return ÉÕ²Ã¾ðÊóÃÍ
 sub get_info {
 	my ($page, $key) = @_;
-	my %info = map { split(/=/, $_, 2) } split(/\n/, $infobase{$page});
-	return $info{$key};
+	if ($key eq $info_IsFrozen) {
+		return ($::database{$page} =~ /\n?#freeze\r?\n/) ? 1 : 0;
+	}
+	if (&is_exist_page($page)) {
+		return &::date("Y-m-d H:i:s", (stat($::data_dir . "/" . &::dbmname($page) . ".txt"))[9]);
+	}
+	return '';
+
 }
 
 ##
 # ÉÕ²Ã¾ðÊóÀßÄê
+# @param $page ¥Ú¡¼¥¸
+# @param $key ¥­¡¼
+# @param $value ÀßÄêÃÍ
 sub set_info {
 	my ($page, $key, $value) = @_;
-	my %info = map { split(/=/, $_, 2) } split(/\n/, $infobase{$page});
-	$info{$key} = $value;
-	my $s = '';
-	for (keys %info) {
-		$s .= "$_=$info{$_}\n";
+	if ($key eq $info_IsFrozen) {	# Åà·ë
+		if ($::database{$page} =~ /\n?#freeze\r?\n/) {	# Åà·ëºÑ¤ß
+			if ($value == 0) {	# Åà·ë²ò½ü
+				$::database{$page} =~ s/\n?#freeze\r?\n//g;
+			}
+		} elsif ($value == 1) {	# Åà·ë
+			$::database{$page} = "#freeze\n" . $::database{$page};
+		}
 	}
-	$infobase{$page} = $s;
 }
 
 ##
 # Åà·ë¥Á¥§¥Ã¥¯
+# @return 1:Åà·ë / 0:Ì¤Åà·ë
 sub frozen_reject {
 	my ($isfrozen) = &get_info($::form{mypage}, $info_IsFrozen);
 	my ($willbefrozen) = $::form{myfrozen};
@@ -1138,6 +1169,7 @@ sub valid_password {
 
 ##
 # Åà·ë³ÎÇ§
+# @return 1:Åà·ë / 0:Ì¤Åà·ë
 sub is_frozen {
 	my ($page) = @_;
 	return (&get_info($page, $info_IsFrozen)) ? 1 : 0;
@@ -1219,12 +1251,6 @@ sub escape {
 }
 
 ##
-# RFC1738¤Ë´ð¤Å¤­URL¥¨¥ó¥³¡¼¥É¤ò¹Ô¤¦¡£foo bar@baz ¢ª foo%20bar%40baz
-sub decode {
-	return &rawurldecode(@_);
-}
-
-##
 # URL¥¨¥ó¥³¡¼¥É¤µ¤ì¤¿Ê¸»úÎó¤ò¥Ç¥³¡¼¥É¤¹¤ë¡£foo%20bar%40baz ¢ª foo bar@baz
 sub encode {
 	return &rawurlencode(@_);
@@ -1272,6 +1298,8 @@ sub jscss_include {
 
 ##
 # ¥×¥é¥°¥¤¥ó¤ÎÂ¸ºß³ÎÇ§
+# @param ¥×¥é¥°¥¤¥óÌ¾
+# @return 1:Â¸ºß¤¹¤ë¡£/ 0:Â¸ºß¤·¤Ê¤¤¡£
 sub exist_plugin {
 	my ($plugin) = @_;
 
@@ -1430,6 +1458,8 @@ sub fopen {
 
 ##
 # Ê¸»úÎó¤ÎÀèÆ¬¤ª¤è¤ÓËöÈø¤Ë¤¢¤ë¥Û¥ï¥¤¥È¥¹¥Ú¡¼¥¹¤ò¼è¤ê½ü¤¯¡£
+# @param ÊÑ´¹Á°Ê¸»úÎó
+# @return ÊÑ´¹¸å¤ÎÊ¸»úÎó
 sub trim {
 	my ($s) = @_;
 	$s =~ s/^\s*(\S+)\s*$/$1/o; # trim
@@ -1438,6 +1468,13 @@ sub trim {
 
 ##
 # ÆüÉÕ¤ò Unix ¤Î¥¿¥¤¥à¥¹¥¿¥ó¥×¤È¤·¤Æ¼èÆÀ¤¹¤ë
+# @param »þ
+# @param Ê¬
+# @param ÉÃ
+# @param ·î
+# @param Æü
+# @param Ç¯
+# @return Unix¥¿¥¤¥à
 sub mktime {
 	my ($hour, $min, $sec, $month, $day, $year) = @_;
 	my $days = 0;
@@ -1460,6 +1497,8 @@ sub mktime {
 
 ##
 # RFC1738¤Ë´ð¤Å¤­URL¥¨¥ó¥³¡¼¥É¤ò¹Ô¤¦¡£foo bar@baz ¢ª foo%20bar%40baz
+# @param ÊÑ´¹Á°Ê¸»úÎó
+# @return ÊÑ´¹¸å¤ÎÊ¸»úÎó
 sub rawurlencode {
 	my ($encoded) = @_;
 	$encoded =~ s/(\W)/'%' . unpack('H2', $1)/eg;
@@ -1468,6 +1507,8 @@ sub rawurlencode {
 
 ##
 # URL¥¨¥ó¥³¡¼¥É¤µ¤ì¤¿Ê¸»úÎó¤ò¥Ç¥³¡¼¥É¤¹¤ë¡£foo%20bar%40baz ¢ª foo bar@baz
+# @param ÊÑ´¹Á°Ê¸»úÎó
+# @return ÊÑ´¹¸å¤ÎÊ¸»úÎó
 sub rawurldecode {
 	my ($s) = @_;
 	$s =~ tr/+/ /;
@@ -1477,6 +1518,8 @@ sub rawurldecode {
 
 ##
 # ÆÃ¼ìÊ¸»ú¤ò HTML ¥¨¥ó¥Æ¥£¥Æ¥£¤ËÊÑ´¹¤¹¤ë¡£'&' ¢ª '&amp;' Åù
+# @param ÊÑ´¹Á°Ê¸»úÎó
+# @return ÊÑ´¹¸å¤ÎÊ¸»úÎó
 sub htmlspecialchars {
 	my ($s) = @_;
 	$s =~ tr|\r||d;
@@ -1489,6 +1532,9 @@ sub htmlspecialchars {
 
 ##
 # ¥í¡¼¥«¥ë¤ÎÆüÉÕ/»þ¹ï¤ò½ñ¼°²½¤¹¤ë
+# @param $format ½ñ¼°
+# @param $tm Unix¥¿¥¤¥à
+# @return ½ñ¼°²½¤·¤¿Ê¸»úÎó
 sub date
 {
 	my ($format, $tm) = @_;

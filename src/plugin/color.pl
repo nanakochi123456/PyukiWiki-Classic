@@ -1,9 +1,10 @@
-###############################################
-# color plugin for YukiWiki & Pyukiwiki
-# color.pl
-# Copyright(c) 2004 Nekyo.
-# 1TAB=4Spaces
-###############################################
+##
+# 引数で指定したインライン要素の、文字色・背景色を指定する。
+# :書式|
+#  &color([文字色][,背景色]){文章};
+
+# @author nekyo.
+# @version 1.00
 use strict;
 package color;
 

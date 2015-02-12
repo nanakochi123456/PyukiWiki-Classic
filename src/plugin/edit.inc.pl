@@ -1,9 +1,11 @@
-############################################################
-# edit plugin
-# edit.inc.pl
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-#
+##
+# ページ編集。
+# :書式|
+#  ?cmd=edit&mypage=ページ名
+# ページ名はエンコードされていなければならない。
+
+# @auther Nekyo (http://nekyo.hp.infoseek.co.jp)
+# @license: GPL2 and/or Artistic or each later version.
 # 1TAB=4Spaces
 use strict;
 
@@ -38,10 +40,10 @@ sub editform {
 		} else {
 			$body .= qq($::resource{previewempty});
 		}
-		$mymsg = &htmlspecialchars($::form{mymsg});
-	} else {
-		$mymsg = &htmlspecialchars($mymsg);
+		$mymsg = $::form{mymsg};
 	}
+	$mymsg =~ s/\n?#freeze\r?\n//g;
+	$mymsg = &htmlspecialchars($mymsg);
 
 	my $edit = $mode{admin} ? 'adminedit' : 'edit';
 	my $escapedmypage = &htmlspecialchars($::form{mypage});
@@ -88,15 +90,13 @@ EOD
   <input type="radio" name="myfrozen" value="0" @{[$frozen ? "" : qq(checked="checked")]}>$::resource{notfrozenbutton}<br>)
   : ""
 ]}
-@{[
-  $mode{conflict} ? "" :
+@{[$mode{conflict} ? '' :
   qq(
-    <input type="submit" name="mypreview_$edit" value="$::resource{previewbutton}">
-    <input type="submit" name="mypreview_write" value="$::resource{savebutton}">
-    <input type="checkbox" name="mytouch" value="on" checked="checked">$::resource{touch}&nbsp;
-	<input type="button" value="$::resource{cancel}" onClick="JavaScript:location.href='$::script?$::form{mypage}'">
-  )
-]}
+  <input type="submit" name="mypreview_$edit" value="$::resource{previewbutton}">
+  <input type="submit" name="mypreview_write" value="$::resource{savebutton}">
+  <input type="checkbox" name="mytouch" value="on" checked="checked">$::resource{touch}&nbsp;
+  <input type="button" value="$::resource{cancel}" onClick="JavaScript:location.href='$::script?$::form{mypage}'">
+)]}
 </form>
 EOD
 	unless ($mode{conflict}) {
@@ -107,6 +107,7 @@ EOD
 		#close(FILE);
 		#$body .= &text_to_html($content, toc=>0);
 		$body .= &text_to_html($::database{$::rule_page}, toc=>0);
+
 	}
 	return $body;
 }

@@ -1,9 +1,9 @@
-###############################################
-# size plugin for YukiWiki & PyukiWiki
-# size.pl
-# Copyright(c) 2004 Nekyo.
-# 1TAB=4Spaces
-###############################################
+##
+# 文字の大きさを指定する。
+# :書式|
+#  &size(ピクセル数値){文字列}
+# ピクセル数値は文字の大きさを指定。
+# @author Nekyo.
 use strict;
 package size;
 

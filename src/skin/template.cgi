@@ -59,7 +59,7 @@ print <<"EOD";
 [ <a href="$::script?cmd=newpage">$::resource{createbutton}</a> |
   <a href="$::script?cmd=list">$::resource{indexbutton}</a> | 
   <a href="$::script?cmd=search">$::resource{searchpage}</a> |
-  <a href="$::script?$::RecentChanges">$::resource{recentchangesbutton}</a> |
+  <a href="$::script?cmd=recent">$::resource{recentchangesbutton}</a> |
   <a href="$::script?$::HelpPage">$::resource{help}</a> ]
 </div>
 <hr class="full_hr" />
@@ -72,7 +72,7 @@ $skin::lastmod2
 <div id="footer">
 Modified by <a href="$::modifierlink">$::modifier</a><br /><br />
 <b>PyukiWiki Classic $::version</b>
-Copyright&copy; since 2004 by <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>,
+Copyright&copy; 2004 <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>,
 <a href="http://pyukiwiki.sourceforge.jp/">PyukiWiki Developers Team</a>.
 License is <a href="http://www.gnu.org/licenses/gpl.html">GPL</a><br />
 Based on "YukiWiki" 2.1.0 by <a href="http://www.hyuki.com/yukiwiki/">yuki</a>

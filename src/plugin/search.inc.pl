@@ -1,18 +1,13 @@
-############################################################
-# search プラグイン
-# search.inc.pl
-# v1.1 コンバート、インライン追加
-# v1.0 ProtoType
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-#
-# 1TAB=4Spaces
+##
+# 指定文字列を含むページを検索する。
+# :書式|
+#  ?cmd=search[パラメータ]
+# パラメータに検索条件を指定する。~
+# word − 検索文字列。~
+# type − 'OR' 指定時、OR検索を行う。(省略時はAND検索)~
+# @author Nekyo.
 use strict;
 
-##
-# 
-# @param $word 検索文字列
-# @param $type 検索タイプ OR or AND
 sub search {
 	my ($word, $type, $base) = @_;
 	my %found;
@@ -29,7 +24,6 @@ sub search {
 							next;
 						}
 					}
-					next if $page =~ /^$::RecentChanges$/;
 					if (($::database{$page} =~ /\Q$wd\E/i) or ($page =~ /\Q$wd\E/i)) {
 						$found{$page} = 1;
 					}
@@ -41,7 +35,6 @@ sub search {
 			}
 		} else {	# AND 検索
 			foreach my $page (sort keys %::database) {
-				next if $page =~ /^$::RecentChanges$/;
 
 				my $exist = 1;
 				foreach my $wd (@words) {
@@ -124,3 +117,4 @@ sub plugin_search_action {
 }
 
 1;
+

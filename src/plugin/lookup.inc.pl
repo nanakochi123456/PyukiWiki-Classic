@@ -1,7 +1,9 @@
 ##
-# PyukiWiki Plugin
-# lookup.inc.pl v0.3 Nekyo(c)
-#
+# 記述位置に入力欄とボタンと表示し、ボタンを押下するとラベルと入力値から生成されたＵＲＬへジャンプする。
+# URI生成ルールはInterWikiと同じ。
+# :書式|
+#  #lookup(ラベル,ボタン名,入力値)
+# @author Nekyo.
 use strict;
 
 sub plugin_lookup_convert {

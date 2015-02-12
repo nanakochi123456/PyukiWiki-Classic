@@ -1,10 +1,13 @@
-############################################################
-# counter プラグイン
-# counter.inc.pl
-# Copyright(c) 2004 Nekyo.
-# v0.0.1
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-# 1TAB=4Spaces
+##
+# ページカウンタを設置する。
+# :書式|
+#  #counter
+#  &counter([total|today|yesterday]);
+# -total - 総参照回数。(デフォルト)
+# -today - 本日参照回数。
+# -yesterday − 昨日参照回数
+# @author nekyo.
+# @version 0.0.2
 
 sub plugin_counter_inline {
 	my $arg = shift;
@@ -51,18 +54,30 @@ sub plugin_counter_get_count {
 		return %default;
 	}
 
-	my $file = $::counter_dir . "/" . &rawurlencode($page) . $::counter_ext;
+	$page =~ s/(\C)/unpack('H2', $1)/eg;
+
+	my $file = $::counter_dir . "/" . $page . $::counter_ext;
 
 	my @keys = keys(%default);
 	my $modify = 0;
 	if (-e $file) {
 		open(FILE, "+<$file") or return "Counter Conflict.<br />\n";
 		flock(FILE, 2);
-		foreach my $key (@keys) {
-			$_ = <FILE>;
-			chomp;
-			$counter{$key} = $_;
-		}
+		$_ = <FILE>;
+		chomp;
+		$counter{'total'} = $_;
+		$_ = <FILE>;
+		chomp;
+		$counter{'date'} = $_;
+		$_ = <FILE>;
+		chomp;
+		$counter{'today'} = $_;
+		$_ = <FILE>;
+		chomp;
+		$counter{'yesterday'} = $_;
+		$_ = <FILE>;
+		chomp;
+		$counter{'ip'} = $_;
 	} else {
 		open(FILE, ">$file") or return "Counter Conflict.<br />\n";
 		flock(FILE, 2);
@@ -91,9 +106,11 @@ sub plugin_counter_get_count {
 			open(FILE, ">$file") or return "Counter Conflict.<br />\n";
 			flock(FILE, 2);
 		}
-		foreach my $key (@keys) {
-			print FILE $counter{$key} . "\n";
-		}
+		print FILE $counter{'total'} . "\n";
+		print FILE $counter{'date'} . "\n";
+		print FILE $counter{'today'} . "\n";
+		print FILE $counter{'yesterday'} . "\n";
+		print FILE $counter{'ip'} . "\n";
 	}
 	if (FILE) {
 		flock(FILE, 8);

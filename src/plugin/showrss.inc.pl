@@ -1,15 +1,16 @@
-######################################################################
-# showrss.inc.pl - This is PyukiWiki, yet another Wiki clone.
-# $Id:2006/06/22
-#
-# PyukiWiki Classic v0.1.6
-# Copyright (C) 2004-2006 by Nekyo, PyukiWiki Developers Team.
+##
+# 指定されたRSSを取得し、一覧表示する。
+# :書式|
+#  #showrss(RSSパス, テンプレート名, キャッシュ生存時間)
+# RSSパスにはRSSへのファイルパスやURLを指定する。(省略不可)~
+# テンプレート名には取得RSSの表示方法を指定。default(省略時), menubar, recent。~
+# キャッシュ生存時間はキャッシュをクリアする期限(1時間単位)。
+# 省略すると無効になる。
+
 # http://nekyo.hp.infoseek.co.jp/
 # License: GPL2
 # Return:LF Code=Shift-JIS 1TAB=4Spaces
-######################################################################
 use strict;
-#use warnings;
 
 sub plugin_showrss_inline
 {
@@ -18,7 +19,7 @@ sub plugin_showrss_inline
 
 sub plugin_showrss_convert
 {
-	my @arg = &::func_get_args(shift);
+	my @arg = &func_get_args(shift);
 	return "argument error." if (@arg <= 0);
 	my $rssuri   = $arg[0];
 	my $tmplname = (@arg >= 2) ? $arg[1] : "";
@@ -50,7 +51,6 @@ sub plugin_showrss_convert
 			close OUT;
 		}
 	} else {
-		return "cache";
 		# read_cache
 		my @line;
 		open(IN, "<$cachefile") || return "Can't read cache.";

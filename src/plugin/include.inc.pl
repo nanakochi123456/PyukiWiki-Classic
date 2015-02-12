@@ -1,10 +1,7 @@
-############################################################
-# new 僾儔僌僀儞
-# new.inc.pl
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-# 1TAB=4Spaces
-
+##
+# 淡揭した疤弥に苞眶で回年したペ〖ジを山绩する。
+# :今及|
+#  #include(ペ〖ジ叹)
 sub plugin_include_convert {
 	my $page = shift;
 	if ($page eq '') { return ''; }

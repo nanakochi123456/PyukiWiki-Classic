@@ -1,5 +1,10 @@
+##
+# ¥Ú¡¼¥¸¤ò¿·µ¬ºîÀ®¤¹¤ë¡£
+# :½ñ¼°|
+#  ?plugin=newpage
+
 ############################################################
-# newpage ƒvƒ‰ƒOƒCƒ“
+# newpage ¥×¥é¥°¥¤¥ó
 # newpage.inc.pl
 # Copyright(c) 2004 Nekyo.
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)

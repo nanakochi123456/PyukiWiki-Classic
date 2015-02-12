@@ -1,6 +1,12 @@
-############################################################
-# comment plugin
-# comment.inc.pl
+##
+# コメント入力欄を表示する。
+# :書式|
+#  #comment({[above],[below],[nodate],[noname]})
+# -above - コメントを入力欄の上に追加する。
+# -below - コメントを入力欄の下に追加する。(default)
+# -nodate - コメントに挿入時刻を付加しない。(省略時は付加する。)
+# -noname - 記入者名の入力欄を非表示とする。(省略時は表示。)
+
 # Copyright(c) 2004 Nekyo.
 # v 0.0.3 - 2006/01/15 Tnx:Birgus-Latro
 # v 0.0.2 - 2004/10/28 Tnx:Birgus-Latro
@@ -8,7 +14,6 @@
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
 # Based on comment.inc.php by Mr.arino.
 # 1TAB=4Spaces
-#
 use strict;
 
 my $comment_format = "\x08MSG\x08 -- \x08NAME\x08 \x08NOW\x08";
@@ -24,7 +29,7 @@ sub plugin_comment_action {
 	my $_name = " ";
 
 	if ($::form{myname}) {
-		&::spam_filter($::form{myname}, 0);
+	#	&::spam_filter($::form{myname}, 0);
 		$_name = " ''[[$::form{myname}]]'' : ";
 	}
 	my $_now = "&new{$datestr};";

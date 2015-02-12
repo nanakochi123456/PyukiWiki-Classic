@@ -1,12 +1,10 @@
-############################################################
-# rss10 plugin
-# rss10.inc.pl
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-#
+##
+# 最新更新をRSS(RDF Site Summary)に変換して出力する。
+# :書式|
+#  ?cmd=rss10
+
+# @author Nekyo.
 # v0.0.2 2005/03/11 Add dc:date
-#
-# 1TAB=4Spaces
 
 sub plugin_rss10_action {
 	my $recentchanges = $::database{$::RecentChanges};

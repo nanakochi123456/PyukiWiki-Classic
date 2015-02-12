@@ -1,11 +1,10 @@
-############################################################
-# online プラグイン
-# online.inc.pl
-# Copyright(c) 2004 Nekyo.
-# for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
-# v0.2 2004/12/06 問題があったので、排他lockなし版
-# 1TAB=4Spaces
-
+##
+# 現在参照中のおおよそのユーザー数を表示する。
+# :書式|
+#  #online
+#  &online;
+# @author Nekyo.
+# @version v0.2 2004/12/06 問題があったので、排他lockなし版
 use strict;
 
 my $timeout = 300;
@@ -15,19 +14,19 @@ sub plugin_online_inline {
 }
 
 sub plugin_online_convert {
-	my $file = $::counter_dir . 'user.dat';
-
-	if (!(-e $file)) {
-		open(FILE, ">$file");
-		close(FILE);
-	}
+	my $file = $::counter_dir . '/user.dat';
 	my $addr = $ENV{'REMOTE_ADDR'};
 
-	open(FILE, "<$file");
-	my @usr_arr = <FILE>;
-	close(FILE);
+	my @usr_arr = ();
+	if (-e $file) {
+		open(FILE, "<$file");
+		@usr_arr = <FILE>;
+		close(FILE);
+	}
 
-	open(FILE, ">$file");
+	if (!open(FILE, ">$file")) {
+		return 'online: "COUNTER_DIR/' . $file . '" not writable';
+	}
 #	flock(FILE, 2);		# lock WriteBlock
 	my $now = time();
 	my ($ip_addr, $tim_stmp);
@@ -48,3 +47,4 @@ sub plugin_online_convert {
 	close(FILE);
 	return @usr_arr;
 }
+1;

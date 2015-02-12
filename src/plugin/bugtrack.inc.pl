@@ -1,9 +1,13 @@
-#
-# PyukiWiki BugTrackプラグイン
-# for Pyukiwiki http://nekyo.hp.infoseek.co.jp/
-#
+##
+# バグレポートの入力フォームを設置する。
+# :書式|
+#  #bugtrack([[ページ名][カテゴリー1…カテゴリーn]])
+# -ページ名はバグレポートとして作成されるページの親階層のページ名を指定。省略時は設置ページとなる。
+# バグレポートは指定したページの子階層に自動的に番号が振られてページが作成される。(ページ名/1,ページ名/2,...)
+# -カテゴリーはバグ対象となりうる要素を指定する。
+
 # Based on Pukiwiki BugTrackプラグイン (c)Y.MASUI GPL2 http:#masui.net/pukiwiki/
-# Special Thanks! koma http://kamoland.com/
+# Special Thanks! kamo http://kamoland.com/
 # 
 # 変更履歴:
 #  2002.06.17: 作り始め
