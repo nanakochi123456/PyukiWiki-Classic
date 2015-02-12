@@ -81,4 +81,8 @@ $::non_list = '^\:';
 # 以下は md5('pass') の出力結果です
 #$adminpass = &md5('pass');
 
+# Skin の gzip パスを設定すると圧縮が有効になる。
+#$::gzip_path = '/bin/gzip -1';
+$::gzip_path = '';
+
 1;

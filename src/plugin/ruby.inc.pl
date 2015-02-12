@@ -1,5 +1,5 @@
 ###############################################
-# ruby¥×¥é¥°¥¤¥ó
+# rubyƒvƒ‰ƒOƒCƒ“
 # ruby.inc.pl
 # Copyright(c) 2004 Nekyo.
 # for PyukiWiki(http://nekyo.hp.infoseek.co.jp)
@@ -14,7 +14,7 @@ sub plugin_ruby_inline {
 	if ($ruby eq '' or $body eq '') {
 		return '';
 	}
-	my $s_ruby = &htmlspecialchars($ruby);
+	my $s_ruby = &escape($ruby);
 	return "<ruby><rb>$body</rb><rp>(</rp><rt>$s_ruby</rt><rp>)</rp></ruby>";
 }
 1;

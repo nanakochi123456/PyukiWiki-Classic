@@ -8,7 +8,7 @@
 
 sub plugin_search_action {
 	my $body = "";
-	my $word = &htmlspecialchars($::form{mymsg});
+	my $word = &escape($::form{mymsg});
 	if ($word) {
 		@words = split(/\s+/, $word);
 		my $total = 0;
@@ -42,7 +42,7 @@ sub plugin_search_action {
 		my $counter = 0;
 		foreach my $page (sort keys %found) {
 			$body .= qq|<ul>| if ($counter == 0);
-			$body .= qq(<li><a href ="$::script?@{[&htmlspecialchars($page)]}">@{[&htmlspecialchars($page)]}</a>@{[&htmlspecialchars(&get_subjectline($page))]}</li>);
+			$body .= qq(<li><a href ="$::script?@{[&encode($page)]}">@{[&escape($page)]}</a>@{[&escape(&get_subjectline($page))]}</li>);
 			$counter++;
 		}
 		$body .= ($counter == 0) ? $::resource{notfound} : qq|</ul>|;

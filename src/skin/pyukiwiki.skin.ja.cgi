@@ -1,44 +1,25 @@
-# Default skin
+# Default skin for v0.1.5
 # Copyright(c) Nekyo
 
 sub skin {
-	my ($page, $body, $is_page) = @_;
+	my ($page, $body, $is_page, $bodyclass, $editable, $admineditable, $basehref) = @_;
 
-	my $bodyclass = "normal";
-	my $editable = 0;
-	my $admineditable = 0;
-
-	if (&is_frozen($page) and $::form{cmd} =~ /^(read|write)$/) {
-		$editable = 0;
-		$admineditable = 1;
-		$bodyclass = "frozen";
-	} elsif (&is_editable($page) and $::form{cmd} =~ /^(read|write)$/) {
-		$admineditable = 1;
-		$editable = 1;
-	} else {
-		$editable = 0;
-	}
 	my $cookedpage = &encode($page);
 	my $escapedpage = &htmlspecialchars($page);
 	my $HelpPage = &encode($::resource{help});
 
 	if ($::last_modified != 0) {	# v0.0.9
-		$lastmod = &date("Y-m-d H:i:s", (stat($::dataname . "/" . &dbmname($page) . ".txt"))[9]);
-	}
-
-	# Thanks moriyoshi koizumi.
-	my $base = "$ENV{'HTTP_HOST'}";
-	if ($ENV{'SERVER_PORT'} ne "80") {
-		$base .= ":$ENV{'SERVER_PORT'}";
-	}
-	$base .= $ENV{'SCRIPT_NAME'};
-	if ($base ne "") {
-		$base = "<base href=\"http://" . $base . "?" . $cookedpage . "\" />\n";
+		$lastmod = &date("Y-m-d H:i:s", (stat($::data_dir . "/" . &dbmname($page) . ".txt"))[9]);
 	}
 
 	print <<"EOD";
 Content-type: text/html; charset=$::charset
-
+$::gzip_header
+EOD
+	if ($::gzip_header ne '') {
+		open(STDOUT,"| $::gzip_path");
+	}
+	print <<"EOD";
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
     "http://www.w3.org/TR/html4/loose.dtd">
@@ -47,7 +28,7 @@ Content-type: text/html; charset=$::charset
   <meta http-equiv="Content-Language" content="$::lang">
   <meta http-equiv="Content-Type" content="text/html; charset=$::charset">
   <title>$escapedpage @{[&htmlspecialchars(&get_subjectline($page))]}</title>
-  $base<link rel="index" href="$::script?cmd=list">
+  $basehref<link rel="index" href="$::script?cmd=list">
   <link rev="made" href="mailto:$::modifier_mail">
   <link rel="stylesheet" href="$::skin_dir/default.$::lang.css" type="text/css" media="screen" charset="Shift_JIS" />
   <link rel="stylesheet" href="$::skin_dir/blosxom.css" type="text/css" media="screen" charset="Shift_JIS" />
@@ -172,7 +153,10 @@ Based on "YukiWiki" 2.1.0 by <a href="http://www.hyuki.com/yukiwiki/">yuki</a>
 and <a href="http://pukiwiki.org">"PukiWiki"</a><br />
 EOD
 	if ($::enable_convtime != 0) {
-		printf('<br />HTML convert time to %.3f sec.<br />', (times)[0] - $_conv_start);
+		printf('<br />HTML convert time to %.3f sec.%s<br />',
+			((times)[0] - $_conv_start),
+			($::gzip_header ne '') ? ' Compressed' : ''
+		);
 	}
 	print <<"EOD";
 </div>

@@ -38,7 +38,7 @@ use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
-$::version = '0.1.4';
+$::version = '0.1.5';
 ##############################
 # You MUST modify following initial file.
 if ($::ini_file eq '') {
@@ -144,7 +144,8 @@ exit(0);
 ##############################
 
 sub main {
-	&init_resource;
+	%::resource = &read_resource($file_resource);
+
 	# &check_modifiers;
 	&open_db;
 	&init_form;
@@ -159,7 +160,7 @@ sub main {
 				my %ret = eval $action;
 				if (($ret{msg} ne '') && ($ret{body} ne '')) {
 					$exec = 0;
-					&skin($ret{msg}, $ret{body}, 0);
+					&skinex($ret{msg}, $ret{body}, 0);
 				}
 			}
 		}
@@ -171,15 +172,57 @@ sub main {
 	&close_db;
 }
 
+sub skinex {
+	my ($page, $body, $is_page) = @_;
+	my $bodyclass     = "normal";
+	my $editable      = 0;
+	my $admineditable = 0;
+
+	if (&is_frozen($page) and $::form{cmd} =~ /^(read|write)$/) {
+		$admineditable = 1;
+		$bodyclass = "frozen";
+	} elsif (&is_editable($page) and $::form{cmd} =~ /^(read|write)$/) {
+		$admineditable = 1;
+		$editable = 1;
+	}
+
+	# Thanks moriyoshi koizumi.
+	my $basehref = "$ENV{'HTTP_HOST'}";
+	if (($ENV{'https'} =~ /on/i) || ($ENV{'SERVER_PORT'} eq '443')) {
+		$basehref = 'https://' . $basehref;
+	} else {
+		$basehref = 'http://' . $basehref;
+		$basehref .= ":$ENV{'SERVER_PORT'}" if ($ENV{'SERVER_PORT'} ne '80');
+	}
+	$basehref .= $ENV{'SCRIPT_NAME'};
+	if ($basehref ne '') {
+		$basehref = '<base href="' . $basehref . '?' . &encode($page) . "\" />\n";
+	}
+
+	# add by nanami. Custom by Nekyo.
+	$::gzip_header = '';
+	if ($::gzip_path ne '') {
+		if(($ENV{'HTTP_ACCEPT_ENCODING'}=~/gzip/)) {
+			if($ENV{'HTTP_ACCEPT_ENCODING'}=~/x-gzip/) {
+				$::gzip_header.="Content-Encoding: x-gzip\n";
+			} else {
+				$::gzip_header.="Content-Encoding: gzip\n";
+			}
+		}
+	}
+	&skin($page, $body, $is_page, $bodyclass, $editable, $admineditable, $basehref);
+}
+
+
 sub do_read {
-	&skin($::form{mypage}, &text_to_html($::database{$::form{mypage}}), 1);
+	&skinex($::form{mypage}, &text_to_html($::database{$::form{mypage}}), 1);
 }
 
 sub do_write {
 	return if (&frozen_reject());
 
 	if (not &is_editable($::form{mypage})) {
-		&skin($::form{mypage}, &message($::resource{cantchange}), 0);
+		&skinex($::form{mypage}, &message($::resource{cantchange}), 0);
 		return;
 	}
 	return if (&conflict($::form{mypage}, $::form{mymsg}));
@@ -214,13 +257,13 @@ sub do_write {
 		delete $infobase{$::form{mypage}};
 		&update_recent_changes if ($::form{mytouch});
 
-		&skin($::form{mypage}, &message($::resource{deleted}), 0);
+		&skinex($::form{mypage}, &message($::resource{deleted}), 0);
 	}
 }
 
 sub print_error {
 	my ($msg) = @_;
-	&skin($ErrorPage, qq(<p><strong class="error">$msg</strong></p>), 0);
+	&skinex($ErrorPage, qq(<p><strong class="error">$msg</strong></p>), 0);
 	exit(0);
 }
 
@@ -756,16 +799,21 @@ sub encode {
 	return $encoded;
 }
 
-sub init_resource {
-	open(FILE, $file_resource) or &print_error("(resource)");
+# リソースを読込む汎用ルーチン
+# Special Thanks to Nanami
+sub read_resource {
+	my ($file) = @_;
+	my %buf = ();
+	open(FILE, $file) or &print_error("(resource:$file)");
 	while (<FILE>) {
 		s/\r\n/\n/;
 		chomp;
 		next if /^#/;
 		my ($key, $value) = split(/=/, $_, 2);
-		$::resource{$key} = &code_convert(\$value, $::kanjicode);
+		$buf{$key} = &code_convert(\$value, $::kanjicode);
 	}
 	close(FILE);
+	return %buf;
 }
 
 sub conflict {
@@ -783,7 +831,7 @@ sub conflict {
 		$body .= &editform($rawmsg, $::form{myConflictChecker}, frozen=>0, conflict=>1);
 	}
 
-	&skin($page, $body, 0);
+	&skinex($page, $body, 0);
 	return 1;
 }
 
@@ -986,7 +1034,7 @@ sub htmlspecialchars {
 	$s =~ s|\r\n|\n|g;
 	$s =~ s|\&|&amp;|g;
 	$s =~ s|<|&lt;|g;
-	$s =~ s|>|&gt;|g;
+	$s =~ s|>|&gt;|g if($s=~/</);	# nanami add
 	$s =~ s|"|&quot;|g;
 	return $s;
 }

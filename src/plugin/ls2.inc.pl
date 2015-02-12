@@ -1,6 +1,7 @@
 ########################/
 # PyukiWiki - Yet another WikiWikiWeb clone.
 # ls2.inc.pl by Nekyo
+# v0.1 2005/04/01 encode バグ Fix Tnx:Junichiさん
 # v0.0 2004/11/01 簡易版 title,reverse 対応、その他は非対応
 # based on ls2.inc.php by arino
 #
@@ -42,12 +43,12 @@ sub plugin_ls2_convert
 	$prefix = $::form{mypage} . "/" if ($prefix eq '');
 
 	foreach my $page (sort keys %::database) {
-		push(@pages, $page) if ($page =~ /$prefix/);
+		push(@pages, $page) if ($page =~ /^$prefix/);
 	}
 	@pages = reverse(@pages) if ($reverse);
 	foreach my $page (@pages) {
 		$body .= <<"EOD";
-<li><a id ="list_1" href="$::script?cmd=read&amp;mypage=$page" title="$page">$page</a></li>
+<li><a id ="list_1" href="$::script?cmd=read&amp;mypage=@{[&encode($page)]}" title="$page">$page</a></li>
 EOD
 		if ($title) {
 			$txt = $::database{$page};
@@ -58,7 +59,7 @@ EOD
 				chomp;
 				if (/^(\*{1,3})(.+)/) {
 					&back_push('ul', length($1), \@tocsaved, \@tocresult);
-					push(@tocresult, qq( <li><a href="$::script?$page#i$tocnum">@{[&htmlspecialchars($2)]}</a></li>\n));	
+					push(@tocresult, qq( <li><a href="$::script?$page#i$tocnum">@{[&escape($2)]}</a></li>\n));	
 					$tocnum++;
 				}
 			}

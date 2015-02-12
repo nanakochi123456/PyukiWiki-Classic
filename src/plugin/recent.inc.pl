@@ -2,6 +2,7 @@
 # recent プラグイン
 # recent.inc.pl
 # Copyright(c) 2004 Nekyo.
+# v 0.0.3 : + ページ名は一覧に表示しない。
 # v 0.0.2 ダイナミック生成から RecentChanges を除外した。
 # v 0.0.1 Actionによりダイナミック生成機能追加
 # v 0.0.0
@@ -60,6 +61,7 @@ sub plugin_recent_convert {
 	foreach (split(/\n/, $recentchanges)) {
 		last if ($count >= $limit);
 		/^\- (\d\d\d\d\-\d\d\-\d\d) \(...\) \d\d:\d\d:\d\d (\S+)/;	# date format.
+		next if ($2 =~ /\[*:/);
 		if ($2) {
 			if ($date ne $1) {
 				if ($date ne '') { $out .= "</ul>\n"; }
@@ -67,8 +69,8 @@ sub plugin_recent_convert {
 				$out .= "<strong>$date</strong><ul class=\"recent_list\">\n";
 			}
 			$out .= "<li>" . &make_link($2) . "</li>\n";
+			$count++;
 		}
-		$count++;
 	}
 	if ($date ne '') { $out .= "</ul>\n"; }
 	return $out;

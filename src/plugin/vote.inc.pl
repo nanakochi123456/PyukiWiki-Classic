@@ -75,7 +75,7 @@ sub plugin_vote_convert
 	my @args = split(/,/, shift);
 	return '' if (@args == 0);
 
-	my $escapedmypage = &htmlspecialchars($::form{mypage});
+	my $escapedmypage = &escape($::form{mypage});
 	my $conflictchecker = &get_info($::form{mypage}, $::info_ConflictChecker);
 
 	my $body = <<"EOD";
