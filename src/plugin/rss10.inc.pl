@@ -9,42 +9,56 @@
 # 1TAB=4Spaces
 
 sub plugin_rss10_action {
-	my $rss = new Yuki::RSS(
-		version => '1.0',
-		encoding => $::charset,
-	);
-	$rss->channel(
-		title => $::modifier_rss_title,
-		link  => $::modifier_rss_link,
-		description => $::modifier_rss_description,
-	);
 	my $recentchanges = $::database{$::RecentChanges};
 	my $count = 0;
+
+	print <<"EOD";
+Content-type: text/xml
+
+<?xml version="1.0" encoding="$::charset"?>
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="$::modifier_rss_link">
+  <title>$::modifier_rss_title</title> 
+  <link>$::modifier_rss_link</link> 
+  <discription>$::modifier_rss_description</discription>
+  <items>
+  <rdf:Seq>
+EOD
+
+	my $items;
+
 	foreach (split(/\n/, $recentchanges)) {
 		last if ($count >= 15);
 		/^\- (\d\d\d\d\-\d\d\-\d\d) \(...\) (\d\d:\d\d:\d\d) (\S+)/;    # data format.
 		my $title = &unarmor_name($3);
-		my $escaped_title = &escape($title);
-		my $link = $modifier_rss_link . '?' . &encode($title);
-		my $description = $escaped_title . &escape(&get_subjectline($title));
+		my $escaped_title = &htmlspecialchars($title);
+		my $link = $modifier_rss_link . '?' . &rawurlencode($title);
+		my $description = $escaped_title . &htmlspecialchars(&get_subjectline($title));
+
+		print <<"EOD";
+  <rdf:li rdf:resource="$link" />
+EOD
 
 		$gmt = ((localtime(time))[2] + (localtime(time))[3] * 24)
 			- ((gmtime(time))[2] + (gmtime(time))[3] * 24);
 		my $date = $1 . "T" . $2 . sprintf("%+02d:00", $gmt);
 
-		$rss->add_item(
-			title => $escaped_title,
-			link  => $link,
-			description => $description,
-			dc_date => $date
-		);
+		$items .=<<"EOD";
+  <item rdf:about="$link">
+  <title>$escaped_title</title> 
+  <link>$link</link> 
+  <discription>$description</discription> 
+  <dc:date>$date</dc:date> 
+  </item>
+EOD
 		$count++;
 	}
-	# print RSS information (as XML).
 	print <<"EOD";
-Content-type: text/xml
-
-@{[$rss->as_string]}
+  </rdf:Seq>
+  </items>
+  </channel>
+  $items
+</rdf:RDF>
 EOD
 	&close_db;
 	exit;

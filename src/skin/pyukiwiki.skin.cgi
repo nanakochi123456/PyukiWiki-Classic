@@ -1,4 +1,5 @@
-# Default skin for v0.1.5
+#################################
+# Default skin for Classic v0.1.6
 # Copyright(c) Nekyo
 
 sub skin {
@@ -30,9 +31,8 @@ EOD
   <title>$escapedpage @{[&htmlspecialchars(&get_subjectline($page))]}</title>
   $basehref<link rel="index" href="$::script?cmd=list">
   <link rev="made" href="mailto:$::modifier_mail">
-  <link rel="stylesheet" href="$::skin_dir/default.$::lang.css" type="text/css" media="screen" charset="Shift_JIS" />
-  <link rel="stylesheet" href="$::skin_dir/blosxom.css" type="text/css" media="screen" charset="Shift_JIS" />
-  <link rel="stylesheet" href="$::skin_dir/print.$::lang.css" type="text/css" media="print" charset="Shift_JIS" />
+  <link rel="stylesheet" href="$::skin_dir/default.css" type="text/css" media="screen" charset="Shift_JIS" />
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="$::script?cmd=rss10" />
 EOD
 	if ($::extend_edit) {
 		print '<script type="text/javascript" src="' . $::skin_dir . '/instag.js"></script>' . "\n";
@@ -48,29 +48,26 @@ EOD
 <a href="$::script?$cookedpage">$::script?$cookedpage</a>
 </div>
 <div id="navigator">
-
- [ <a href="$::script?$cookedpage">$::resource{reload}</a> ]
- &nbsp;
- [ <a href="$::script?cmd=newpage">$::resource{createbutton}</a>
- @{[ $editable
-   ? qq( | <a title="$::resource{editthispage}" href="$::script?cmd=edit&amp;mypage=$cookedpage">$::resource{editbutton}</a>)
+[ <a href="$::script?$::FrontPage">$::resource{top}</a> ] &nbsp;
+[ @{[ $editable
+   ? qq(<a title="$::resource{editthispage}" href="$::script?cmd=edit&amp;mypage=$cookedpage">$::resource{editbutton}</a> | )
    : qq()
  ]}
  @{[ $admineditable
-   ? qq( | <a title="$::resource{admineditthispage}" href="$::script?cmd=adminedit&amp;mypage=$cookedpage">$::resource{admineditbutton}</a>)
+   ? qq(<a title="$::resource{admineditthispage}" href="$::script?cmd=adminedit&amp;mypage=$cookedpage">$::resource{admineditbutton}</a> | )
    : qq()
  ]}
  @{[ $admineditable
-   ? qq( | <a href="$::script?cmd=diff&amp;mypage=$cookedpage">$::resource{diffbutton}</a>)
+   ? qq(<a href="$::script?cmd=diff&amp;mypage=$cookedpage">$::resource{diffbutton}</a> | )
    : qq()
  ]}
  @{[ (-f "$::plugin_dir/attach.inc.pl")
-   ? qq( | <a href="$::script?cmd=attach&amp;mypage=$cookedpage">$::resource{attachbutton}</a>)
+   ? qq(<a href="$::script?cmd=attach&amp;mypage=$cookedpage">$::resource{attachbutton}</a> | )
    : qq()
  ]}
- ]
+ <a href="$::script?$cookedpage">$::resource{reload}</a> ]
  &nbsp;
- [ <a href="$::script?$::FrontPage">$::resource{top}</a> | 
+ [ <a href="$::script?cmd=newpage">$::resource{createbutton}</a> |
    <a href="$::script?cmd=list">$::resource{indexbutton}</a> | 
    <a href="$::script?cmd=search">$::resource{searchpage}</a> |
    <a href="$::script?$::RecentChanges">$::resource{recentchangesbutton}</a> |
@@ -140,20 +137,22 @@ EOD
 
 	print <<"EOD";
 <hr class="full_hr" />
-<div id="toolbar"><a href="$::script?cmd=rss10"><img src="$::image_dir/rss.png" border="0" /></a></div>
+<div id="toolbar"><a href="$::script?cmd=rss10"><img src="$::image_dir/feed-icon16x16.png" border="0" /></a></div>
 @{[ $::last_modified == 2
  ? qq(<div id="lastmodified">$::lastmod_prompt $lastmod</div>)
  : qq()
 ]}
 <div id="footer">
 Modified by <a href="$::modifierlink">$::modifier</a><br /><br />
-<b>PyukiWiki $::version</b>
-Copyright&copy; 2004,2005 by <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>.<br />
+<b>PyukiWiki Classic $::version</b>
+Copyright&copy; 2004-2006 by <a href="http://nekyo.hp.infoseek.co.jp/">Nekyo</a>,
+<a href="http://pyukiwiki.sourceforge.jp/">PyukiWiki Developers Team</a>.
+License is <a href="http://www.gnu.org/licenses/gpl.html">GPL</a><br />
 Based on "YukiWiki" 2.1.0 by <a href="http://www.hyuki.com/yukiwiki/">yuki</a>
-and <a href="http://pukiwiki.org">"PukiWiki"</a><br />
+and <a href="http://pukiwiki.sourceforge.jp">"PukiWiki"</a>
 EOD
 	if ($::enable_convtime != 0) {
-		printf('<br />HTML convert time to %.3f sec.%s<br />',
+		printf('HTML convert time: %.3f sec.%s<br />',
 			((times)[0] - $_conv_start),
 			($::gzip_header ne '') ? ' Compressed' : ''
 		);

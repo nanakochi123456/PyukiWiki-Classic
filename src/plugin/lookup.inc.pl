@@ -30,7 +30,7 @@ EOD
 }
 
 sub plugin_lookup_action {
-	my $text = &::decode($::form{page});	# 入力テキスト
+	my $text = &::rawurldecode($::form{page});	# 入力テキスト
 
 	my ($code, $uri) = %{$::interwiki2{$::form{inter}}};
 	if ($uri) {	# pukiコンパチ

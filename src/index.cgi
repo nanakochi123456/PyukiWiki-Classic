@@ -1,22 +1,31 @@
-#!/usr/bin/perl --
+#!/usr/bin/perl
 #!/usr/local/bin/perl --
+#######################################
+# index.cgi - This is PyukiWiki, yet another Wiki clone.
 #
-# wiki.cgi - This is PyukiWiki, yet another Wiki clone.
-#
-# Copyright (C) 2004 by Nekyo.
+# PyukiWiki Classic Version see also $::version
+# Copyright (C) 2004-2006 by Nekyo.
 # http://nekyo.hp.infoseek.co.jp/
+# Copyright (C) 2005-2006 PyukiWiki Developers Team
+# http://pyukiwiki.sourceforge.jp/
 #
 # Based on YukiWiki <hyuki@hyuki.com> http://www.hyuki.com/yukiwiki/
-# Powerd by PukiWiki http://pukiwiki.org/
-#
-# 1TAB=4Spaces
+# Powerd by PukiWiki http://pukiwiki.sourceforge.jp/
+# License: GPL2 and/or Artistic or each later version
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
-# Return Code:UNIX=LF/Windows=CR+LF/Mac=CR
-##############################
+# Return:LF Code=EUC-JP 1TAB=4Spaces
+#######################################
+$::version = '0.1.6';
+
 # Libraries.
 use strict;
+
+##############################
+# You MUST modify following initial file.
+$::ini_file = 'pyukiwiki.ini.cgi' if ($::ini_file eq '');
+
 # if you can use lib is ../lib then swap this comment
 BEGIN {
 	push @INC, 'lib';
@@ -24,34 +33,26 @@ BEGIN {
 
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser);
-use Yuki::RSS;
 use Yuki::DiffText qw(difftext);
 use Yuki::YukiWikiDB;
+use Socket;
+use FileHandle;
 
 # If You can use Jcode.pm then Swap the comment.
-my $use_Jcodepm = 1;
 use Jcode;
-#my $use_Jcodepm = 0;
-#require 'jcode.pl';
-
 use Fcntl;
 # Check if the server can use 'AnyDBM_File' or not.
 # eval 'use AnyDBM_File';
 # my $error_AnyDBM_File = $@;
-$::version = '0.1.5';
-##############################
-# You MUST modify following initial file.
-if ($::ini_file eq '') {
-	$::ini_file = 'pyukiwiki.ini.cgi';
-}
 require $::ini_file;
-require $::skin_file;
+$::skin_file = 'pyukiwiki.skin.cgi' if ($::skin_file eq '');
+require "$::skin_dir/$::skin_file";
 
 ##############################
 #
 # You MAY modify following variables.
 #
-my $modifier_dbtype = 'YukiWikiDB';
+my $modifier_dbtype = 'Yuki::YukiWikiDB';
 my $modifier_sendmail = '';
 #my $modifier_sendmail = '/usr/sbin/sendmail -t -n';
 ##############################
@@ -69,9 +70,6 @@ if ($::lang eq 'ja') {
 	$::charset = 'gb2312';
 }
 
-my $file_resource = "$::data_home/resource.$::lang.txt";
-my $file_conflict = "$::data_home/conflict.$::lang.txt";
-
 ##############################
 my $editchar = '?';
 my $subject_delimiter = ' - ';
@@ -85,7 +83,8 @@ my $CompletedSuccessfully = 'CompletedSuccessfully';
 my $ErrorPage = 'ErrorPage';
 
 ##############################
-my $wiki_name = '\b([A-Z][a-z]+([A-Z][a-z]+)+)\b';
+#my $wiki_name = '\b([A-Z][a-z]+([A-Z][a-z]+)+)\b';
+my $wiki_name = '\b([A-Z][a-z]+[A-Z][a-z]+)\b';
 my $bracket_name = '\[\[([^\]]+?)\]\]';
 my $embedded_name = '(\#\S+?)';
 my $interwiki_definition = '\[\[(\S+?)\ (\S+?)\]\]';	# ? \[\[(\S+) +(\S+)\]\]
@@ -96,7 +95,9 @@ my $interwiki_name2 = '([^:]+):([^:#].*?)(#.*)?';
 my $ismail = '[\x01-\x7F]+\@(([-a-z0-9]+\.)*[a-z]+|\[\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\])';
 
 ##############################
-my $embed_plugin = '^#([^(]+)(\(([^)]+)\))?$';
+#my $embed_plugin = '^#([^(]+)(\(([^)]+)\))?$';
+my $embed_plugin = '^\#([^\(]+)(\((.*)\))?';
+
 my $embed_inline = '(&amp;[^;&]+;|&amp;[^)]+\))';
 ##############################
 $::info_ConflictChecker = 'ConflictChecker';
@@ -144,7 +145,7 @@ exit(0);
 ##############################
 
 sub main {
-	%::resource = &read_resource($file_resource);
+	%::resource = &read_resource("$::res_dir/resource.$::lang.txt");
 
 	# &check_modifiers;
 	&open_db;
@@ -172,6 +173,8 @@ sub main {
 	&close_db;
 }
 
+##
+# 画面表示の前処理
 sub skinex {
 	my ($page, $body, $is_page) = @_;
 	my $bodyclass     = "normal";
@@ -196,7 +199,7 @@ sub skinex {
 	}
 	$basehref .= $ENV{'SCRIPT_NAME'};
 	if ($basehref ne '') {
-		$basehref = '<base href="' . $basehref . '?' . &encode($page) . "\" />\n";
+		$basehref = '<base href="' . $basehref . '?' . &rawurlencode($page) . "\" />\n";
 	}
 
 	# add by nanami. Custom by Nekyo.
@@ -213,24 +216,27 @@ sub skinex {
 	&skin($page, $body, $is_page, $bodyclass, $editable, $admineditable, $basehref);
 }
 
-
+##
+# ページ表示
 sub do_read {
 	&skinex($::form{mypage}, &text_to_html($::database{$::form{mypage}}), 1);
 }
 
+##
+# ページ保存
 sub do_write {
-	return if (&frozen_reject());
-
+	my ($FrozenWrite, $viewpage) = @_;
 	if (not &is_editable($::form{mypage})) {
 		&skinex($::form{mypage}, &message($::resource{cantchange}), 0);
 		return;
+	}
+	if ($FrozenWrite ne 'FrozenWrite') {
+		return if (&frozen_reject());
 	}
 	return if (&conflict($::form{mypage}, $::form{mymsg}));
 
 	$::form{mymsg} =~ s/&date;/&date($::date_format)/gex;
 	$::form{mymsg} =~ s/&time;/&date($::time_format)/gex;
-#	'&page;' => array_pop(explode('/',$vars['page'])),
-#	'&fpage;' => $vars['page'],
 
 	# Making diff
 	if (1) {
@@ -256,19 +262,15 @@ sub do_write {
 		delete $::database{$::form{mypage}};
 		delete $infobase{$::form{mypage}};
 		&update_recent_changes if ($::form{mytouch});
-
 		&skinex($::form{mypage}, &message($::resource{deleted}), 0);
 	}
+	return 0;
 }
 
 sub print_error {
 	my ($msg) = @_;
 	&skinex($ErrorPage, qq(<p><strong class="error">$msg</strong></p>), 0);
 	exit(0);
-}
-
-sub escape {
-	return &htmlspecialchars(shift);
 }
 
 sub unescape {
@@ -391,7 +393,7 @@ sub text_to_html {
 		} elsif (/^====/) {
 			if ($::form{show} ne 'all') {
 				push(@result, splice(@saved), "<a href=\"$::script?cmd=read&mypage="
-					. &encode($::form{mypage}) . "&show=all\">$::resource{continue_msg}</a>");
+					. &rawurlencode($::form{mypage}) . "&show=all\">$::resource{continue_msg}</a>");
 				last;
 			}
 		} else {
@@ -466,12 +468,13 @@ sub inline {
 	return $line;
 }
 
+##
+# 注釈表示
 sub note {
 	my ($msg) = @_;
 
 	push(@::notes, $msg);
 	return "<a id=\"notetext_" . @::notes . "\" "
-#		. "href=\"?" . &::encode($::form{mypage}) . "#notefoot_" . @::notes . "\" class=\"note_super\">*"
 		. "href=\"#notefoot_" . @::notes . "\" class=\"note_super\">*"
 		. @::notes . "</a>";
 }
@@ -493,7 +496,7 @@ sub make_link {
 	} else {
 		$chunk = &unarmor_name($chunk);
 		$chunk = &unescape($chunk); # To treat '&' or '>' or '<' correctly.
-		my $cookedchunk = &encode($chunk);
+		my $cookedchunk = &rawurlencode($chunk);
 		my $escapedchunk = &htmlspecialchars($chunk);
 		if ($chunk =~ /(.+?)>(.+)/ or $chunk =~ /(.+?):(.+)/) {	# v0.1.4
 			$escapedchunk = &htmlspecialchars($1);
@@ -503,7 +506,7 @@ sub make_link {
 				$chunk = "mailto:$chunk" if ($chunk !~ /^mailto:/);
 				return qq(<a href="$chunk">$escapedchunk</a>);
 			} elsif (($chunk =~ /(https?|ftp):.*/) or !$::interwiki{$1}) {
-				$cookedchunk = &encode($chunk);
+				$cookedchunk = &rawurlencode($chunk);
 			}
 		} elsif ($chunk =~ /^($ismail)/) {
 			return qq(<a href="mailto:$chunk">$chunk</a>);
@@ -543,7 +546,7 @@ sub make_link {
 		}
 
 		$chunk = get_fullname($chunk, $::form{mypage});
-		$cookedchunk  = &encode($chunk);
+		$cookedchunk = &rawurlencode($chunk);
 		if ($::database{$chunk}) {
 			return qq(<a title="$chunk" href="$::script?$cookedchunk">$escapedchunk</a>);
 		} elsif (($chunk =~ /^([^#]*)#/) && $::database{$1}) {
@@ -586,6 +589,8 @@ sub message {
 	return qq(<p><strong>$msg</strong></p>);
 }
 
+##
+# 引数初期化。
 sub init_form {
 	if (param()) {
 		foreach my $var (param()) {
@@ -600,11 +605,11 @@ sub init_form {
 	if ($query =~ /&/) {
 		my @querys = split(/&/, $query);
 		foreach (@querys) {
-			$_ = &decode($_);
+			$_ = &rawurldecode($_);
 			$::form{$1} = $2 if (/([^=]*)=(.*)$/);
 		}
 	} else {
-		$query = &decode($query);
+		$query = &rawurldecode($query);
 	}
 
 	if ($query =~ /^($wiki_name)$/) {
@@ -689,26 +694,27 @@ EOD
 	close(MAIL);
 }
 
+##
+# DBのオープン ※モジュール化すると遅くなる。
 sub open_db {
 	if ($modifier_dbtype eq 'dbmopen') {
 		dbmopen(%::database, $::data_dir, 0666) or &print_error("(dbmopen) $::data_dir");
-		dbmopen(%infobase, $::info_dir, 0666) or &print_error("(dbmopen) $::info_dir");
+		dbmopen(%infobase,   $::info_dir, 0666) or &print_error("(dbmopen) $::info_dir");
 	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
 		tie(%::database, "AnyDBM_File", $::data_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::data_dir");
-		tie(%infobase, "AnyDBM_File", $::info_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::info_dir");
+		tie(%infobase,   "AnyDBM_File", $::info_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::info_dir");
 	} else {
-		tie(%::database, "Yuki::YukiWikiDB", $::data_dir) or &print_error("(tie Yuki::YukiWikiDB) $::data_dir");
-		tie(%infobase, "Yuki::YukiWikiDB", $::info_dir) or &print_error("(tie Yuki::YukiWikiDB) $::info_dir");
+		tie(%::database, $modifier_dbtype, $::data_dir) or &print_error("(tie $modifier_dbtype) $::data_dir");
+		tie(%infobase,   $modifier_dbtype, $::info_dir) or &print_error("(tie $modifier_dbtype) $::info_dir");
 	}
 }
 
+##
+# DBのクローズ
 sub close_db {
 	if ($modifier_dbtype eq 'dbmopen') {
 		dbmclose(%::database);
 		dbmclose(%infobase);
-#	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-#		untie(%::database);
-#		untie(%infobase);
 	} else {
 		untie(%::database);
 		untie(%infobase);
@@ -721,15 +727,13 @@ sub open_diff {
 	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
 		tie(%::diffbase, "AnyDBM_File", $::diff_dir, O_RDWR|O_CREAT, 0666) or &print_error("(tie AnyDBM_File) $::diff_dir");
 	} else {
-		tie(%::diffbase, "Yuki::YukiWikiDB", $::diff_dir) or &print_error("(tie Yuki::YukiWikiDB) $::diff_dir");
+		tie(%::diffbase, $modifier_dbtype, $::diff_dir) or &print_error("(tie $modifier_dbtype) $::diff_dir");
 	}
 }
 
 sub close_diff {
 	if ($modifier_dbtype eq 'dbmopen') {
 		dbmclose(%::diffbase);
-#	} elsif ($modifier_dbtype eq 'AnyDBM_File') {
-#		untie(%::diffbase);
 	} else {
 		untie(%::diffbase);
 	}
@@ -758,49 +762,37 @@ sub is_editable {
 	}
 }
 
-# armor_name:
-#   WikiName -> WikiName
-#   not_wiki_name -> [[not_wiki_name]]
+##
+# WikiName に ブランケット([[]])追加
 sub armor_name {
 	my ($name) = @_;
 	return ($name =~ /^$wiki_name$/) ? $name : "[[$name]]";
 }
 
-# unarmor_name:
-#   [[bracket_name]] -> bracket_name
-#   WikiName -> WikiName
+##
+# ブランケット([[]])削除。
 sub unarmor_name {
 	my ($name) = @_;
 	return ($name =~ /^$bracket_name$/) ? $1 : $name;
 }
 
+##
+# ブランケット付きか確認
 sub is_bracket_name {
 	my ($name) = @_;
 	return ($name =~ /^$bracket_name$/) ? 1 : 0;
 }
 
+##
+# ページ名をDBファイル名に変換
 sub dbmname {
 	my ($name) = @_;
 	$name =~ s/(.)/uc unpack('H2', $1)/eg;
 	return $name;
 }
 
-sub decode {
-	my ($s) = @_;
-	$s =~ tr/+/ /;
-	$s =~ s/%([A-Fa-f0-9][A-Fa-f0-9])/pack("C", hex($1))/eg;
-	return $s;
-}
-
-# Thanks to WalWiki for [better encode].
-sub encode {
-	my ($encoded) = @_;
-	$encoded =~ s/(\W)/'%' . unpack('H2', $1)/eg;
-	return $encoded;
-}
-
+##
 # リソースを読込む汎用ルーチン
-# Special Thanks to Nanami
 sub read_resource {
 	my ($file) = @_;
 	my %buf = ();
@@ -821,7 +813,7 @@ sub conflict {
 	if ($::form{myConflictChecker} eq &get_info($page, $::info_ConflictChecker)) {
 		return 0;
 	}
-	open(FILE, $file_conflict) or &print_error("(conflict)");
+	open(FILE, "$::res_dir/conflict.$::lang.txt") or &print_error("(conflict)");
 	my $content = join('', <FILE>);
 	&code_convert(\$content, $::kanjicode);
 	close(FILE);
@@ -835,16 +827,16 @@ sub conflict {
 	return 1;
 }
 
+##
+# 現在時刻取得
 sub get_now {
-	my (@week) = qw(Sun Mon Tue Wed Thu Fri Sat);
-	my ($sec, $min, $hour, $day, $mon, $year, $weekday) = localtime(time);
-	$weekday = $week[$weekday];
-	return sprintf("%d-%02d-%02d ($weekday) %02d:%02d:%02d",
-		$year + 1900, $mon + 1, $day, $hour, $min, $sec);
+	return date("Y-m-d (D) H:i:s");
 }
 
-# [[YukiWiki http://www.hyuki.com/yukiwiki/wiki.cgi?euc($1)]]
-# [http://www.hyuki.com/yukiwiki/wiki.cgi?$1 YukiWiki] euc
+##
+# InterWikiName 初期化
+# YukiWiki形式 [[YukiWiki http://www.hyuki.com/yukiwiki/wiki.cgi?euc($1)]]
+# PukiWiki形式 [http://www.hyuki.com/yukiwiki/wiki.cgi?$1 YukiWiki] euc
 sub init_InterWikiName {
 	my $content = $::database{$interwikiName};
 	while ($content =~ /$interwiki_definition/g) {
@@ -860,28 +852,30 @@ sub interwiki_convert {
 	my ($type, $localname) = @_;
 	if ($type eq 'sjis' or $type eq 'euc' or $type eq 'utf8') {
 		&code_convert(\$localname, $type);
-		return &encode($localname);
+		return &rawurlencode($localname);
 	} elsif (($type eq 'ykwk') || ($type eq 'yw')) {
 		# for YukiWiki1
 		if ($localname =~ /^$wiki_name$/) {
 			return $localname;
 		} else {
 			&code_convert(\$localname, 'sjis');
-			return &encode("[[" . $localname . "]]");
+			return &rawurlencode("[[" . $localname . "]]");
 		}
-#	} elsif (($type eq 'asis') || ($type eq 'raw')) {
-#		return $localname;
 	} else {
 		return $localname;
 	}
 }
 
+##
+# 付加情報取得
 sub get_info {
 	my ($page, $key) = @_;
 	my %info = map { split(/=/, $_, 2) } split(/\n/, $infobase{$page});
 	return $info{$key};
 }
 
+##
+# 付加情報設定
 sub set_info {
 	my ($page, $key, $value) = @_;
 	my %info = map { split(/=/, $_, 2) } split(/\n/, $infobase{$page});
@@ -893,6 +887,8 @@ sub set_info {
 	$infobase{$page} = $s;
 }
 
+##
+# 凍結チェック
 sub frozen_reject {
 	my ($isfrozen) = &get_info($::form{mypage}, $info_IsFrozen);
 	my ($willbefrozen) = $::form{myfrozen};
@@ -908,39 +904,22 @@ sub frozen_reject {
 	}
 }
 
+##
+# パスワード確認
 sub valid_password {
 	my ($givenpassword) = @_;
 	return (crypt($givenpassword, "AA") eq $::adminpass) ? 1 : 0;
 }
 
+##
+# 凍結確認
 sub is_frozen {
 	my ($page) = @_;
 	return (&get_info($page, $info_IsFrozen)) ? 1 : 0;
 }
 
-# require plugin with flag control;
-sub exist_plugin {
-	my ($plugin) = @_;
-
-	if (!$_plugined{$plugin}) {
-		my $path = "$::plugin_dir/$plugin" . '.inc.pl';
-		if (-e $path) {
-			require $path;
-			$_plugined{$1} = 1;	# Pyuki
-			return 1;
-		} else {
-			$path = "$::plugin_dir/$plugin" . '.pl';
-			if (-e $path) {
-				require $path;
-				$_plugined{$1} = 2;	# Yuki
-				return 2;
-			}
-		}
-		return 0;
-	}
-	return $_plugined{$plugin};
-}
-
+##
+# プラグイン展開
 sub embedded_to_html {
 	my $embedded = shift;
 
@@ -960,6 +939,8 @@ sub embedded_to_html {
 	return $embedded;
 }
 
+##
+# インライン展開
 sub embedded_inline {
 	my $embedded = shift;
 
@@ -985,30 +966,151 @@ sub embedded_inline {
 	return &unescape($embedded);
 }
 
+##
+# 文字コード変換
 sub code_convert {
 	my ($contentref, $kanjicode) = @_;
 	if ($::lang eq 'ja') {
-		if ($use_Jcodepm == 1) {
-			&Jcode::convert($contentref, $kanjicode);	# for Jcode.pm
-		} elsif ($kanjicode eq 'euc' or $kanjicode eq 'sjis') {
-			&jcode::convert($contentref, $kanjicode);	# for jcode.pl
-		}
+		&Jcode::convert($contentref, $kanjicode);	# for Jcode.pm
 	}
 	return $$contentref;
 }
 
+##
+# ページ存在確認
 sub is_exist_page {
 	my ($name) = @_;
 	return ($use_exists) ? exists($::database{$name}) : $::database{$name};
 }
 
-# Like a PHP.
+
+##############################
+# 下位互換用
+
+##
+# 特殊文字を HTML エンティティに変換する。'&' → '&amp;' 等
+sub escape {
+	return &htmlspecialchars(shift);
+}
+
+##
+# RFC1738に基づきURLエンコードを行う。foo bar@baz → foo%20bar%40baz
+sub decode {
+	return &rawurldecode(@_);
+}
+
+##
+# URLエンコードされた文字列をデコードする。foo%20bar%40baz → foo bar@baz
+sub encode {
+	return &rawurlencode(@_);
+}
+
+
+##############################
+# PukiWiki風関数
+
+##
+# プラグインの存在確認
+sub exist_plugin {
+	my ($plugin) = @_;
+
+	if (!$_plugined{$plugin}) {
+		my $path = "$::plugin_dir/$plugin" . '.inc.pl';
+		if (-e $path) {
+			require $path;
+			$_plugined{$1} = 1;	# Pyuki
+			return 1;
+		} else {
+			$path = "$::plugin_dir/$plugin" . '.pl';
+			if (-e $path) {
+				require $path;
+				$_plugined{$1} = 2;	# Yuki
+				return 2;
+			}
+		}
+		return 0;
+	}
+	return $_plugined{$plugin};
+}
+
+##
+# プラグイン引数展開。必ず引数は shift とする。
+sub func_get_args {
+	my @args = split(/,/, shift);
+	for (my $i = 0; $i < @args; $i++) {
+		$args[$i] = trim($args[$i]);
+	}
+	return @args;
+}
+
+
+##############################
+# PHP互換関数
+
+##
+# ファイルまたはURLをオープンする
+sub fopen {
+	my ($fname, $fmode) = @_;
+	my $_fname;
+	my $fp;
+
+	# HTTP: だったら
+	if ($fname =~ /^http:\/\//) {
+		$fname =~ m!(http:)?(//)?([^:/]*)?(:([0-9]+)?)?(/.*)?!;
+		my $host = ($3 ne "") ? $3 : "localhost";
+		my $port = ($5 ne "") ? $5 : 80;
+		my $path = ($6 ne "") ? $6 : "/";
+		if ($::proxy_host) {
+			$host = $::proxy_host;
+			$port = $::proxy_port;
+			$path = $fname;
+		}
+		my ($sockaddr, $ip);
+		$fp = new FileHandle;
+		if ($host =~ /^(\d+).(\d+).(\d+).(\d+)$/) {
+			$ip = pack('C4', split(/\./, $host));
+		} else {
+			#HOST名をIPに直す
+		#	$ip = (gethostbyname($host))[4] || return (1, "Host Not Found.");
+			$ip = inet_aton($host) || return 0;	# Host Not Found.
+		}
+		$sockaddr = pack_sockaddr_in($port, $ip) || return 0; # Can't Create Socket address.
+		socket($fp, PF_INET, SOCK_STREAM, 0) || return 0;	# Socket Error.
+		connect($fp, $sockaddr) || return 0;	# Can't connect Server.
+		autoflush $fp(1);
+		print $fp "GET $path HTTP/1.1\r\nHost: $host\r\n\r\n";
+		return $fp;
+	} else {
+		$fmode = lc($fmode);
+
+		if ($fmode eq 'w') {
+			$_fname = ">$fname";
+		} elsif ($fmode eq 'w+') {
+			$_fname = "+>$fname";
+		} elsif ($fmode eq 'a') {
+			$_fname = ">>$fname";
+		} elsif ($fmode eq 'r') {
+			$_fname = $fname;
+		} else {
+			return 0;
+		}
+		if (open($fp, $_fname)) {
+			return $fp;
+		}
+	}
+	return 0;
+}
+
+##
+# 文字列の先頭および末尾にあるホワイトスペースを取り除く。
 sub trim {
 	my ($s) = @_;
 	$s =~ s/^\s*(\S+)\s*$/$1/o; # trim
 	return $s;
 }
 
+##
+# 日付を Unix のタイムスタンプとして取得する
 sub mktime {
 	my ($hour, $min, $sec, $month, $day, $year) = @_;
 	my $days = 0;
@@ -1029,6 +1131,25 @@ sub mktime {
 	return (((($days * 24) + $hour) * 60) + $min) * 60 + $sec;
 }
 
+##
+# RFC1738に基づきURLエンコードを行う。foo bar@baz → foo%20bar%40baz
+sub rawurlencode {
+	my ($encoded) = @_;
+	$encoded =~ s/(\W)/'%' . unpack('H2', $1)/eg;
+	return $encoded;
+}
+
+##
+# URLエンコードされた文字列をデコードする。foo%20bar%40baz → foo bar@baz
+sub rawurldecode {
+	my ($s) = @_;
+	$s =~ tr/+/ /;
+	$s =~ s/%([A-Fa-f0-9][A-Fa-f0-9])/pack("C", hex($1))/eg;
+	return $s;
+}
+
+##
+# 特殊文字を HTML エンティティに変換する。'&' → '&amp;' 等
 sub htmlspecialchars {
 	my ($s) = @_;
 	$s =~ s|\r\n|\n|g;
@@ -1039,6 +1160,8 @@ sub htmlspecialchars {
 	return $s;
 }
 
+##
+# ローカルの日付/時刻を書式化する
 sub date
 {
 	my ($format, $tm) = @_;
@@ -1127,7 +1250,7 @@ Nekyo http://nekyo.hp.infoseek.co.jp/
 
 =head1 LICENSE
 
-Copyright (C) 2004 by Nekyo.
+Copyright (C) 2004-2006 by Nekyo.
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

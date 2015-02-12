@@ -1,98 +1,63 @@
-PyukiWiki - 帺桼偵儁乕僕傪捛壛丒嶍彍丒曇廤偱偒傞Web儁乕僕峔抸CGI
-
--------------------------------------------------
-仭嶌幰
--------------------------------------------------
-Copyright (C) 2004- by Nekyo
-Nekyo <nekyo@yamaneko.club.ne.jp>
+ファイルˇディレクトリの掳拉について
+Copyright(c) Nekyo.
 http://nekyo.hp.infoseek.co.jp/
+KanjiCode=EUC
 
--------------------------------------------------
-仭嵟怴忣曬
--------------------------------------------------
-埲壓偺URL偱嵟怴忣曬傪擖庤偟偰偔偩偝偄丅
-http://nekyo.hp.infoseek.co.jp/
+→ファイルˇディレクトリの掳拉の肋年について
+笆布のディレクトリ(wikiで今哈みのために蝗脱する)には今哈み掳拉を肋年する涩妥があります。
+掳拉を 666 (粕今き材)にします。
+attach, cache, counter, diff, info, wiki
 
--------------------------------------------------
-仭偼偠傔偵
--------------------------------------------------
-(1) index.cgi偺堦峴栚傪偁側偨偺僒乕僶偵崌傢偣偰廋惓偟傑偡丅
+index.cgi は、web サ〖バ沸统で悸乖する涩妥があるため掳拉を 755(粕哈み、悸乖材)にします。
 
-    #!/usr/local/bin/perl
+その戮、稍旁圭があれば、惧淡の≈→掳拉の棱汤∽を徊救して硷」トライしてみて布さい。
 
-(2) pyukiwiki.ini.cgi 偺曄悢偺抣傪廋惓偟傑偡丅
+→ライブラリの Digest について
+办忍弄な Perl の肋年では Digest がインスト〖ルされています。インスト〖ルされているもの
+を蝗脱する数が、办忍弄に光庐ですが、洛仑脱のライブラリを票涵しています。
+Digest でエラ〖が叫る眷圭は、lib/_Digest を lib/Digest にリネ〖ムして蝗脱して布さい。
+エラ〖が叫ない眷圭は、lib/_Digest は稍妥ですので、ディレクトリ极挛を猴近してもかまいません。
 
-(3)乽僼傽僀儖堦棗乿偵偁傞僼傽僀儖傪僒乕僶偵揮憲偟傑偡丅
-    揮憲儌乕僪傗僷乕儈僢僔儑儞傪揔愗偵愝掕偟傑偡丅
+→ファイルの猖乖について
+Windowsで倡券しているため、ファイルの猖乖はまちまちです。
+サ〖バにアップロ〖ドする眷圭は、
+１、暗教妨をダウンロ〖ド
+２、Windows惧で豺培
+３、涩妥なファイル∈奶撅は pyukiwiki.ini.cgi のみ)を饯赖。
+４、Webサ〖バに FTPアップロ〖ド
+の缄界を艰りますが、４の狠にFTPクライアント娄でファイルの猖乖コ〖ドをサ〖バに
+圭わせてアップロ〖ドする屯にして布さい。
 
-(4) 僽儔僂僓偱僒乕僶忋偺 index.cgi偺URL偵傾僋僙僗偟傑偡丅
+お搓い∷鹅汐した爬やプロバイダ盖铜の恃构爬がありましたら、
+http://nekyo.hp.infoseek.co.jp/に攫鼠アップをお搓いします。
 
--------------------------------------------------
-仭僼傽僀儖堦棗
--------------------------------------------------
+→掳拉の棱汤
+ⅲ称疤の棱汤
+掳拉に肋年する３つの眶机は疤によって
+100の疤 オ〖ナ〖(=あなた)
+ 10の疤 グル〖プ(=あなたが掳するグル〖プ)
+  1の疤 办忍ユ〖ザ(Webを徊救する客)
+となる。
 
-仠愢柧暥
+ⅲ称疤の猛の棱汤
+称疤の猛は涪嘎を２渴眶のアンドで山す。
+100(2) 粕哈涪嘎
+010(2) 今哈涪嘎
+001(2) 悸乖涪嘎
 
-埲壓偺僼傽僀儖偼丄
-Web僒乕僶偵揮憲偡傞昁梫偼偁傝傑偣傫丅
+毋えば、粕哈みと悸乖の涪嘎をもつ眷圭は、
+100(2) & 001(2) = 101(2) = 5 となる。
 
-+-- README.txt          夝愢暥彂乮偙偺僼傽僀儖乯
+ⅲ悸乖させる眷圭
+オ〖ナ〖、グル〖プ、办忍ユ〖ザの链てに粕哈みと悸乖涪嘎を积たせる眷圭、掳拉猛は 555 となる。
+cgiファイルは悸乖材墙に肋年する涩妥がある。
 
+webサ〖バからファイルが斧えるようにする
+眷圭も悸乖涪嘎を肋年する涩妥がある。
 
-仠CGI孮
+ⅲ今哈みさせる眷圭
+オ〖ナ〖、グル〖プ、办忍ユ〖ザの链てに粕今きの涪嘎をもたせる眷圭、掳拉猛は 666 となる。
+cgi から粕今きする眷圭は、悸乖涪嘎は涩妥ない。
+稍脱罢な今垂えの滦忽のため、今哈み掳拉を肋年するディレクトリは涩妥呵你嘎にすべきである。
 
-埲壓偺僼傽僀儖偼CGI偑幚峴偱偒傞僨傿儗僋僩儕偵FTP偟傑偡丅
-
-                       揮憲儌乕僪 僷乕儈僢僔儑儞   愢柧
-+-- index.cgi               TEXT  755 (rwxr-xr-x)  CGI杮懱
-+-- pyukiwiki.ini.cgi       TEXT  644 (rw-r--r--)  掕媊僼傽僀儖
-+-- lib                           755 (rwxr-xr-x)  巊梡儌僕儏乕儖孮
-    +-- Algorithm                 755 (rwxr-xr-x)  僨傿儗僋僩儕
-    |   +-- Diff.pm         TEXT  644 (rw-r--r--)  嵎暘梡
-    +-- Digest                    755 (rwxr-xr-x)  僨傿儗僋僩儕
-    |   +-- MD5.pm          TEXT  644 (rw-r--r--)  md5 寁嶼梡
-    +-- Jcode                     755 (rwxr-wr-x)  僨傿儗僋僩儕 
-    |   +-- Unicode               755 (rwxr-wr-x)  僨傿儗僋僩儕
-    |   |   +-- Contants.pm TEXT  644 (rw-r--r--)  Jcode.pm 偱巊梡
-    |   |   +-- NoXS.pm     TEXT  644 (rw-r--r--)  Jcode.pm 偱巊梡
-    |   +-- Contants.pm     TEXT  644 (rw-r--r--)  Jcode.pm 偱巊梡
-    |   +-- H2Z.pm          TEXT  644 (rw-r--r--)  Jcode.pm 偱巊梡
-    |   +-- Tr.pm           TEXT  644 (rw-r--r--)  Jcode.pm 偱巊梡
-    |   +-- Unicode.pm      TEXT  644 (rw-r--r--)  Jcode.pm 偱巊梡
-    +-- Yuki                      755 (rwxr-xr-x)  僨傿儗僋僩儕
-        +-- DiffText.pm     TEXT  644 (rw-r--r--)  嵎暘梡
-        +-- RSS.pm          TEXT  644 (rw-r--r--)  RSS梡
-        +-- YukiWikiDB.pm   TEXT  644 (rw-r--r--)  僼傽僀儖儀乕僗偺DB梡
-
-仠嶲徠僼傽僀儖
-
-埲壓偺僼傽僀儖偼丄
-pyukiwiki.ini.cgi 撪偺曄悢 $::data_home偱巜掕偡傞僨傿儗僋僩儕偵揮憲偟傑偡丅
-徻偟偔偼 pyukiwiki.ini.cgi 傪嶲徠偟偰壓偝偄丅
-
-                       揮憲儌乕僪 僷乕儈僢僔儑儞   愢柧
-+-- resource.ja.txt         TEXT  644 (rw-r--r--)  儕僜乕僗僼傽僀儖
-+-- conflict.ja.txt         TEXT  644 (rw-r--r--)  峏怴偺徴撍帪偺僥僉僗僩
-+-- attach                        777 (rwxrwxrwx)  揧晅曐懚梡僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
-+-- cache                         777 (rwxrwxrwx)  堦帪僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
-+-- counter                       777 (rwxrwxrwx)  僇僂儞僞抣曐懚梡僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
-+-- diff                          777 (rwxrwxrwx)  嵎暘曐懚梡僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
-+-- image                         777 (rwxrwxrwx)  夋憸曐懚梡僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
-+-- info                          777 (rwxrwxrwx)  忣曬曐懚梡僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
-+-- plugin                        777 (rwxrwxrwx)  僾儔僌僀儞梡僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
-+-- skin                          777 (rwxrwxrwx)  僗僉儞梡僨傿儗僋僩儕
-|   +-- pyukiwiki.skin.ja.cgi     644 (rw-r--r--)  僗僉儞僼傽僀儖
-|   +-- default.ja.css            644 (rw-r--r--)  昞帵梡 css
-|   +-- print.ja.css              644 (rw-r--r--)  報嶞梡 css
-|   +-- blosxom.css               644 (rw-r--r--)  blosxom 梡 css
-|   +-- instag.js                 644 (rw-r--r--)  奼挘曇廤梡 JavaScript
-|   +-- index.html                644 (rw-r--r--)  堦棗昞帵杊巭梡
-+-- wiki                          777 (rwxrwxrwx)  儁乕僕僨乕僞曐懚梡僨傿儗僋僩儕
-|   +-- index.html          TEXT  755 (rwxr-xr-x)  堦棗昞帵杊巭梡
+笆惧

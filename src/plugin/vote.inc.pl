@@ -37,7 +37,7 @@ sub plugin_vote_action
 					$arg = $1;
 					$cnt = $2;
 				}
-				my $e_arg = &encode($arg);
+				my $e_arg = &rawurlencode($arg);
 				my $vote_e_arg = "vote_" . $e_arg;
 
 				if ($::form{$vote_e_arg} && ($::form{$vote_e_arg} eq $::resource{vote_plugin_votes})) {
@@ -58,7 +58,7 @@ sub plugin_vote_action
 	if ($write) {
 		$::form{mymsg} = $postdata;
 		$::form{mytouch} = 'on';
-		&do_write;
+		&do_write('FrozenWrite');
 	} else {
 		$::form{cmd} = 'read';
 		&do_read;
@@ -75,7 +75,7 @@ sub plugin_vote_convert
 	my @args = split(/,/, shift);
 	return '' if (@args == 0);
 
-	my $escapedmypage = &escape($::form{mypage});
+	my $escapedmypage = &htmlspecialchars($::form{mypage});
 	my $conflictchecker = &get_info($::form{mypage}, $::info_ConflictChecker);
 
 	my $body = <<"EOD";
@@ -105,7 +105,7 @@ EOD
 		} else {
 			$link = $_;
 		}
-		$e_arg = &encode($link);
+		$e_arg = &rawurlencode($link);
 		$cls = ($tdcnt++ % 2)  ? 'vote_td1' : 'vote_td2';
 		$body .= <<"EOD";
   <tr>

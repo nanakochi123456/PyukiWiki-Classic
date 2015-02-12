@@ -47,7 +47,7 @@ sub plugin_article_action
 	}
 	$::form{mymsg} = $postdata;
 	$::form{mytouch} = 'on';
-	&do_write;
+	&do_write("FrozenWrite");
 	&close_db;
 	exit;
 }

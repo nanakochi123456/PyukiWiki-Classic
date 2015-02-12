@@ -1,8 +1,9 @@
 ######################################################################
-# adminedit.inc.pl - This is PyukiWiki, yet another Wiki clone.
+# source.inc.pl - This is PyukiWiki, yet another Wiki clone.
 #
-# PyukiWiki Classic 0.1.6
-# Author: Nekyo
+# Usage:?cmd=source&page=pagename
+#
+# Author: Nekyo.
 # Copyright (C) 2004-2006 by Nekyo.
 # http://nekyo.hp.infoseek.co.jp/
 # Copyright (C) 2005-2006 PyukiWiki Developers Team
@@ -15,23 +16,15 @@
 # modify it under the same terms as Perl itself.
 # Return:LF Code=EUC-JP 1TAB=4Spaces
 ######################################################################
-
 use strict;
-
-sub plugin_adminedit_action {
-	if (1 == &exist_plugin('edit')) {
-		my ($page) = &unarmor_name(&armor_name($::form{mypage}));
-		my $body;
-		if (not &is_editable($page)) {
-			$body .= qq(<p><strong>$::resource{cantchange}</strong></p>);
-		} else {
-			$body .= qq(<p><strong>$::resource{passwordneeded}</strong></p>);
-			$body .= &editform($::database{$page},
-				&get_info($page, $::info_ConflictChecker), admin=>1);
-		}
-		return ('msg'=>$page, 'body'=>$body);
-	}
-	return "";
+sub plugin_source_action {
+	return if ($::form{'page'} eq '');
+	my $page = $::form{'page'};
+	print "Content-Type: text/plain\r\n\r\n";
+	print $::database{$page};
+	&close_db;
+	exit(0);
 }
 1;
 __END__
+

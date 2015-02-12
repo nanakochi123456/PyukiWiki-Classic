@@ -1,11 +1,14 @@
-############################################################
-# showrss.inc.pl
-# by Nekyo.
+######################################################################
+# showrss.inc.pl - This is PyukiWiki, yet another Wiki clone.
+# $Id:2006/06/22
 #
+# PyukiWiki Classic v0.1.6
+# Copyright (C) 2004-2006 by Nekyo, PyukiWiki Developers Team.
+# http://nekyo.hp.infoseek.co.jp/
+# License: GPL2
+# Return:LF Code=Shift-JIS 1TAB=4Spaces
+######################################################################
 use strict;
-use Socket;
-use FileHandle;
-use Jcode;
 
 sub plugin_showrss_inline
 {
@@ -14,7 +17,7 @@ sub plugin_showrss_inline
 
 sub plugin_showrss_convert
 {
-	my @arg = split(/,/, shift);
+	my @arg = &func_get_args(shift);
 	return "argument error." if (@arg <= 0);
 	my $rssuri   = $arg[0];
 	my $tmplname = (@arg >= 2) ? $arg[1] : "";
@@ -28,17 +31,17 @@ sub plugin_showrss_convert
 
 	my $lastmod = (stat($cachefile))[9];
 	if ($lastmod + $expire < time || $lastmod == 0) {
-		$rssuri =~ m!(http:)?(//)?([^:/]*)?(:([0-9]+)?)?(/.*)?!;
-		my $host = ($3 ne "") ? $3 : "localhost";
-		my $port = ($5 ne "") ? $5 : 80;
-		my $path = ($6 ne "") ? $6 : "/";
-
+		my $fp = fopen($rssuri, "r");
 		my $result;
-		($result, $stream) = &get_rss($host, $path, $port);
+		($result, $stream) = &get_rss($fp);
 		return $stream if ($result != 0); # $stream is errorcode.
 
-		$stream = &Jcode::convert($stream, $::kanjicode, $code);
-		$stream = &replace($stream);
+		if ($stream =~ /encoding="[Ee][Uu][Cc]/) {
+			$code = "euc";
+		} elsif($stream=~/encoding="[Ss][Hh][Ii][Ff][Tt]/) {
+			$code = "sjis";
+		}
+		$stream = &replace(&code_convert(\$stream, $::kanjicode, $code));
 		if (open(OUT, ">$cachefile")) {
 			flock(OUT, 2);	# lock WriteBlock
 			print OUT $stream;
@@ -110,27 +113,13 @@ EOD
 	return $body;
 }
 
-# rss取得
 sub get_rss
 {
-	my ($host, $path, $port) = @_;
+	my ($fp) = @_;
 	my (@log, $sock, $sockaddr, $ip, $data);
-	$sock = new FileHandle;
-	if ($host =~ /^(\d+).(\d+).(\d+).(\d+)$/) {
-		$ip = pack('C4', split(/\./, $host));
-	} else {
-		#HOST名をIPに直す
-	#	$ip = (gethostbyname($host))[4] || return (1, "Host Not Found.");
-		$ip = inet_aton($host) || return (1, "Host Not Found.");
-	}
-	$sockaddr = pack_sockaddr_in($port, $ip) || (2, "Can't Create Socket address.");
-	socket($sock, PF_INET, SOCK_STREAM, 0) || return (3, "Socket Error.");
-	connect($sock, $sockaddr) || return (4, "Can't connect Server.");
-	autoflush $sock(1);
-	print $sock "GET $path HTTP/1.1\r\nHost: $host\r\n\r\n";
-	@log = <$sock>;
+	@log = <$fp>;
 	sleep(1);
-	close($sock);
+	close($fp);
 	undef $data;
 	foreach (@log) {
 		s/\r\n/\n/g;

@@ -32,7 +32,7 @@ sub plugin_aname_convert
 			$class = 'anchor_super';
 		}
 		if (/full/) {
-			$url = "$script?".rawurlencode($vars['page']);
+			$url = "$script?" . rawurlencode($vars['page']);
 		}
 		if (/noid/) {
 			$attr_id = '';

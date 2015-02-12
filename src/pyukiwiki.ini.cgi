@@ -1,39 +1,44 @@
-##############################
-# pyukiwiki.ini.cgi
+######################################################################
+# pyukiwiki.ini.cgi - This is PyukiWiki, yet another Wiki clone.
+# $Id$
 #
-# Copyright (C) 2004 by Nekyo.
+# PyukiWiki Classic v0.1.6
+# Copyright (C) 2004-2006 by Nekyo, PyukiWiki Developers Team
 # http://nekyo.hp.infoseek.co.jp/
 #
-# 1TAB=4Spaces
-##############################
-use strict;
-
+# Return Code:LF Japanese Code=EUC 1TAB=4Spaces
+######################################################################
 # 言語
-$::lang = "ja";       # ja:日本語/cn:中国語(参考)/en:英語(参考)
+$::lang = "ja";       # ja:日本語/en:英語(参考)
 $::kanjicode = "euc"; # euc:EUC-JP/utf8:UTF-8
 
 # データ格納ディレクトリ
-$::data_home = '.'; # ページデータ等のディレクトリ
-$::data_dir    = "$::data_home/wiki";		# ページデータ保存用
-$::diff_dir    = "$::data_home/diff";		# 差分保存用
-$::cache_dir   = "$::data_home/cache";		# 一時用
-$::upload_dir  = "$::data_home/attach";		# 添付用
-$::counter_dir = "$::data_home/counter";	# カウンタ用
-$::plugin_dir  = "$::data_home/plugin";		# プラグイン用
-$::skin_dir    = "$::data_home/skin";		# スキン用
-$::image_dir   = "$::data_home/image";		# 画像用
-$::info_dir    = "$::data_home/info";		# 情報用
+$::data_home   = '.'; # ページデータ等のディレクトリ
+$::data_dir    = "$::data_home/wiki";     # ページデータ保存用
+$::diff_dir    = "$::data_home/diff";     # 差分保存用
+$::cache_dir   = "$::data_home/cache";    # 一時用
+$::upload_dir  = "$::data_home/attach";   # 添付用
+$::counter_dir = "$::data_home/counter";  # カウンタ用
+$::plugin_dir  = "$::data_home/plugin";   # プラグイン用
+$::skin_dir    = "$::data_home/skin";     # スキン用
+$::image_dir   = "$::data_home/image";    # 画像用
+$::info_dir    = "$::data_home/info";     # 情報用
+$::res_dir     = "$::data_home/resource"; # リソース
 
 # スキンファイル
-$::skin_file   = "$::skin_dir/pyukiwiki.skin." . $::lang . ".cgi";
+#$::skin_file = 'pyukiwiki.skin.cgi';
 
-# 修正者情報
-$::modifier = 'Nekyo';					# 修正者名
-$::modifierlink = 'http://nekyo.hp.infoseek.co.jp/'; # 修正者URI
-$::modifier_mail = '';					# 修正者メールアドレス
+# プロキシ設定
+#$proxy_host = '';
+#$proxy_port = 8080;
+
+# 修正者情報(修正して下さい)
+$::modifier      = 'YourName';          # 修正者名
+$::modifierlink  = 'http://localhost/'; # 修正者URI
+$::modifier_mail = '';                  # 修正者メールアドレス
 
 # デフォルトページ名
-$::script = 'index.cgi';
+$::script        = 'index.cgi';
 $::FrontPage     = 'FrontPage';
 $::RecentChanges = 'RecentChanges';
 $::CreatePage    = 'CreatePage';
@@ -43,19 +48,19 @@ $::Header        = ':Header';
 $::Footer        = ':Footer';
 $::rule_page     = "整形ルール";
 
+# 凍結時のパスワード(変更して下さい)
 $::adminpass = crypt("pass", "AA");
 
-# RSS情報
-$::modifier_rss_title = "PyukiWiki $::version";
-$::modifier_rss_link = 'http://nekyo.hp.infoseek.co.jp/';
+# RSS情報(変更して下さい)
+$::modifier_rss_title       = "PyukiWiki $::version";
+$::modifier_rss_link        = 'http://localhost/';
 $::modifier_rss_description = 'This is PyukiWiki.';
 
 # 表示設定
-$::usefacemark = 1;   # フェースマークを 1:使う/0:使わない。
-$::use_popup = 0;     # リンク先を 1:ポップアップ/0:ページ切替
-$::last_modified = 2; # 最終更新日 0:非表示/1:上に表示/2:下に表示
+$::usefacemark = 1;                   # フェースマーク 1:使用/0:未使用
+$::use_popup = 0;                     # リンク先 1:ポップアップ/0:ページ切替
+$::last_modified = 2;                 # 最終更新日 0:非表示/1:上に表示/2:下に表示
 $::lastmod_prompt = 'Last-modified:'; # 最終更新日のプロンプト
-
 
 $::enable_convtime = 1; # コンバートタイム 1:表示/0:非表示;
 
